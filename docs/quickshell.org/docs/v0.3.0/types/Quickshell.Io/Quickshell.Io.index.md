@@ -1,0 +1,15 @@
+# Quickshell.Io Index
+
+- [DataStream](./DataStream/DataStream.md)
+- [DataStreamParser](./DataStreamParser/DataStreamParser.md)
+- [FileView](./FileView/FileView.md)
+- [FileViewAdapter](./FileViewAdapter/FileViewAdapter.md)
+- [FileViewError](./FileViewError/FileViewError.md)
+- [IpcHandler](./IpcHandler/IpcHandler.md)
+- [JsonAdapter](./JsonAdapter/JsonAdapter.md)
+- [JsonObject](./JsonObject/JsonObject.md)
+- [Process](./Process/Process.md)
+- [Socket](./Socket/Socket.md)
+- [SocketServer](./SocketServer/SocketServer.md)
+- [SplitParser](./SplitParser/SplitParser.md)
+- [StdioCollector](./StdioCollector/StdioCollector.md)

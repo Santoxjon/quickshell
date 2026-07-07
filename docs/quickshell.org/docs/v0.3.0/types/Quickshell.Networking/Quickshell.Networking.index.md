@@ -1,0 +1,16 @@
+# Quickshell.Networking Index
+
+- [ConnectionFailReason](./ConnectionFailReason/ConnectionFailReason.md)
+- [ConnectionState](./ConnectionState/ConnectionState.md)
+- [DeviceType](./DeviceType/DeviceType.md)
+- [Network](./Network/Network.md)
+- [NetworkBackendType](./NetworkBackendType/NetworkBackendType.md)
+- [NetworkConnectivity](./NetworkConnectivity/NetworkConnectivity.md)
+- [NetworkDevice](./NetworkDevice/NetworkDevice.md)
+- [Networking](./Networking/Networking.md)
+- [NMSettings](./NMSettings/NMSettings.md)
+- [WifiDevice](./WifiDevice/WifiDevice.md)
+- [WifiDeviceMode](./WifiDeviceMode/WifiDeviceMode.md)
+- [WifiNetwork](./WifiNetwork/WifiNetwork.md)
+- [WifiSecurityType](./WifiSecurityType/WifiSecurityType.md)
+- [WiredDevice](./WiredDevice/WiredDevice.md)

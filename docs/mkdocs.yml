@@ -1,0 +1,6 @@
+site_name: Quickshell v0.3.0 Docs
+
+docs_dir: ./quickshell.org/docs/v0.3.0/types
+
+theme:
+  name: mkdocs
