@@ -10,6 +10,9 @@ import "./drawers"
 ShellRoot {
     id: root
 
+    property bool audioHover: false
+    property bool drawerHover: false
+
     Theme {
         id: appTheme
     }
@@ -21,12 +24,14 @@ ShellRoot {
         activeBorder: audioDrawer.fullyOpened
 
         onAudioHovered: {
-            root.activeDrawer = "audio";
+            audioHover = true;
+            closeAudioTimer.stop();
+            updateAudioDrawer();
         }
 
         onAudioUnhovered: {
-            // de momento puedes dejarlo vacío
-            // para que no se cierre al mover el ratón hacia el drawer
+            audioHover = false;
+            closeAudioTimer.restart();
         }
     }
 
@@ -38,8 +43,25 @@ ShellRoot {
         anchorWindow: topBar
         opened: root.activeDrawer === "audio"
 
-        onExited: root.activeDrawer = ""
+        onEntered: {
+            drawerHover = true;
+            closeAudioTimer.stop();
+            updateAudioDrawer();
+        }
+
+        onExited: {
+            drawerHover = false;
+            closeAudioTimer.restart();
+        }
     }
+
+    Timer {
+    id: closeAudioTimer
+    interval: 1
+    repeat: false
+
+    onTriggered: updateAudioDrawer()
+}
 
     NotificationServer {
         id: notificationServer
@@ -72,5 +94,9 @@ ShellRoot {
                 popupIndex: delegateRoot.index
             }
         }
+    }
+
+    function updateAudioDrawer() {
+        audioDrawer.opened = audioHover || drawerHover;
     }
 }

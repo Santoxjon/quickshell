@@ -64,4 +64,8 @@ Row {
     ShutdownModule {
         theme: root.theme
     }
+
+    function closeAudioDrawer() {
+        root.audioUnhovered();
+    }
 }

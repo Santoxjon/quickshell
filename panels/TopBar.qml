@@ -78,14 +78,14 @@ PanelWindow {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 2
+            height: 3
             color: bar.theme.topBarBottomBorder
 
             opacity: bar.activeBorder ? 1.0 : 0.0
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: bar.activeBorder ? 0 : 500
+                    duration: bar.activeBorder ? 0 : 200
                     easing.type: Easing.OutCubic
                 }
             }

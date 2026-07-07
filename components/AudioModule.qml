@@ -44,8 +44,6 @@ Item {
         onEntered: root.hovered()
         onExited: root.unhovered()
 
-        onClicked: root.clicked()
-
         onWheel: wheel => {
             if (!root.audio)
                 return;

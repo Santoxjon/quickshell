@@ -18,7 +18,7 @@ PopupWindow {
 
     anchor.window: anchorWindow
     anchor.rect.x: anchorWindow.width - implicitWidth - 30
-    anchor.rect.y: root.theme.barHeight - 2
+    anchor.rect.y: root.theme.barHeight - 3
 
     implicitWidth: 320
     implicitHeight: Pipewire.nodes.values.filter(node => node.isSink && node.name && node.name.startsWith("alsa_output.")).length * 36 + 12 + 10 + 26 + 28 + 12 + 40
@@ -126,13 +126,13 @@ PopupWindow {
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: root.fullyOpened ? 0 : 500
+                    duration: root.fullyOpened ? 0 : 200
                     easing.type: Easing.OutCubic
                 }
             }
 
             ShapePath {
-                strokeWidth: 2
+                strokeWidth: 3
                 strokeColor: root.theme.topBarBottomBorder
                 fillColor: "transparent"
 
