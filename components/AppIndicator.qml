@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
 Row {
@@ -42,33 +43,13 @@ Row {
 
     Process {
         running: true
-
-        command: ["bash", "-c", `
-get_state() {
-  hyprctl clients -j | jq -r '
-    [.[].class | ascii_downcase] |
-    [
-      if any(.[]; test("discord|vesktop|legcord")) then "discord" else empty end,
-      if any(.[]; test("steam")) then "steam" else empty end
-    ] | join(" ")
-  '
-}
-
-get_state
-
-SOCKET="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
-
-socat -U - UNIX-CONNECT:"$SOCKET" | while read -r event; do
-  case "$event" in
-    openwindow*|closewindow*|movewindow*|workspace*)
-      get_state
-      ;;
-  esac
-done
-        `]
+        command: ["bash", Quickshell.shellDir + "/scripts/app-indicator.sh"]
 
         stdout: SplitParser {
-            onRead: data => root.setState(data)
+            onRead: line => root.setState(line)
+        }
+        stderr: SplitParser {
+            onRead: line => console.log("app-indicator error:", line)
         }
     }
 }

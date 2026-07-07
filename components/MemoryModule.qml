@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
 Item {
@@ -28,32 +29,14 @@ Item {
 
     Process {
         running: true
-
-        command: ["bash", "-c", `
-while true; do
-  awk '
-    /MemTotal/ { total=$2 }
-    /MemAvailable/ { available=$2 }
-    END {
-      used=total-available
-      percent=int(used*100/total)
-
-      used_gb=used/1024/1024
-
-      printf "%d%%|%.1fGB\\n", percent, used_gb
-    }
-  ' /proc/meminfo
-
-  sleep 1
-done
-        `]
+        command: ["bash", Quickshell.shellDir + "/scripts/get-memory-usage.sh"]
 
         stdout: SplitParser {
             onRead: data => {
-                const parts = data.trim().split("|");
+                const mem = JSON.parse(data);
 
-                root.percentUsage = parts[0] || "--%";
-                root.gbUsage = parts[1] || "q--GB";
+                root.percentUsage = mem.percentUsage;
+                root.gbUsage = mem.gbUsage;
             }
         }
     }

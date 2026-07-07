@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
 import "../popups"
@@ -36,42 +37,14 @@ Item {
 
     Process {
         running: true
-
-        command: ["bash", "-c", `
-while true; do
-  mpstat -P ALL 1 1 | awk '
-    /^Average:/ {
-      idle = $NF
-      gsub(",", ".", idle)
-      usage = int(100 - idle)
-
-      if ($2 == "all") {
-        main = usage "%"
-      }
-
-      if ($2 ~ /^[0-9]+$/) {
-        if (cores != "")
-          cores = cores ";"
-
-        cores = cores sprintf("Core %2d: %3d%%", $2, usage)
-      }
-    }
-
-    END {
-      printf "%s|%s\\n", main, cores
-    }
-  '
-
-  sleep 1
-done
-    `]
+        command: ["bash", Quickshell.shellDir + "/scripts/get-cpu-usage.sh"]
 
         stdout: SplitParser {
             onRead: data => {
-                const parts = data.trim().split("|");
+                const cpu = JSON.parse(data);
 
-                root.usage = parts[0] || "--%";
-                root.tooltipText = (parts[1] || "CPU").split(";").join("\n").trim();
+                root.usage = cpu.usage;
+                root.tooltipText = cpu.tooltipText;
             }
         }
     }
