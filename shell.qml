@@ -18,6 +18,8 @@ ShellRoot {
         id: topBar
         theme: appTheme
 
+        activeBorder: audioDrawer.fullyOpened
+
         onAudioHovered: {
             root.activeDrawer = "audio";
         }
@@ -31,6 +33,7 @@ ShellRoot {
     property string activeDrawer: ""
 
     AudioDrawer {
+        id: audioDrawer
         theme: appTheme
         anchorWindow: topBar
         opened: root.activeDrawer === "audio"

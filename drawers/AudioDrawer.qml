@@ -18,11 +18,13 @@ PopupWindow {
 
     anchor.window: anchorWindow
     anchor.rect.x: anchorWindow.width - implicitWidth - 30
-    anchor.rect.y: root.theme.barHeight + 5
+    anchor.rect.y: root.theme.barHeight -2
 
     implicitWidth: 320
     implicitHeight: Pipewire.nodes.values.filter(node => node.isSink && node.name && node.name.startsWith("alsa_output.")).length * 36 + 12 + 10 + 26 + 28 + 12 + 40
     color: "transparent"
+
+    readonly property bool fullyOpened: box.height === root.implicitHeight && root.opened
 
     Item {
         id: box
@@ -103,6 +105,86 @@ PopupWindow {
                 }
 
                 // esquina superior izquierda tipo cazuela
+                PathCubic {
+                    x: 0
+                    y: 0
+                    control1X: box.lip
+                    control1Y: 4
+                    control2X: 4
+                    control2Y: 0
+                }
+            }
+        }
+
+        Shape {
+            anchors.fill: parent
+            antialiasing: true
+            layer.enabled: true
+            layer.samples: 8
+
+            opacity: root.fullyOpened ? 1.0 : 0.0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.fullyOpened ? 0 : 500
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            ShapePath {
+                strokeWidth: 2
+                strokeColor: root.theme.topBarBottomBorder
+                fillColor: "transparent"
+
+                startX: 0
+                startY: 0
+
+                PathMove {
+                    x: box.width
+                    y: 0
+                }
+
+                PathCubic {
+                    x: box.width - box.lip
+                    y: box.lip
+                    control1X: box.width - 4
+                    control1Y: 0
+                    control2X: box.width - box.lip
+                    control2Y: 4
+                }
+
+               PathLine {
+                    x: box.width - box.lip
+                    y: box.height - box.radius - 1
+                }
+
+                // esquina inferior derecha: subimos el controlY y el y final 1 píxel
+                PathQuad {
+                    x: box.width - box.lip - box.radius
+                    y: box.height - 1
+                    controlX: box.width - box.lip
+                    controlY: box.height - 1
+                }
+
+                // borde inferior abajo: se mantiene a la altura de box.height - 1
+                PathLine {
+                    x: box.lip + box.radius
+                    y: box.height - 1
+                }
+
+                // esquina inferior izquierda: subimos el controlY y el y final 1 píxel
+                PathQuad {
+                    x: box.lip
+                    y: box.height - box.radius - 1
+                    controlX: box.lip
+                    controlY: box.height - 1
+                }
+
+                PathLine {
+                    x: box.lip
+                    y: box.lip
+                }
+
                 PathCubic {
                     x: 0
                     y: 0

@@ -13,6 +13,9 @@ QtObject {
     property color sliderHandleRectangleBg: "#E4D6A9"
     property color sliderHandleRectangleBorder: "#622B14"
 
+    // Topbar
+    property color topBarBottomBorder: "#622B14"
+
     property string fontName: "JetBrainsMono Nerd Font"
     property int fontSize: 17
     property int barHeight: 28
