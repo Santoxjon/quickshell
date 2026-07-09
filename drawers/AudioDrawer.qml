@@ -1,8 +1,9 @@
 import QtQuick
-import Quickshell
 import QtQuick.Controls
-import Quickshell.Services.Pipewire
 import QtQuick.Shapes
+import Quickshell
+import Quickshell.Io
+import Quickshell.Services.Pipewire
 
 import "../components"
 
@@ -19,6 +20,18 @@ PopupWindow {
     anchor.window: anchorWindow
     anchor.rect.x: anchorWindow.width - implicitWidth - 30
     anchor.rect.y: root.theme.barHeight - 3
+    
+    property string batteryText: ""
+
+    Process {
+        id: hs80BatteryProcess
+        command: ["cat", "/run/hs80-battery"]
+        stdout: SplitParser {
+            onRead: (line) => {
+                root.batteryText = line.trim()
+            }
+        }
+    }
 
     implicitWidth: 320
     implicitHeight: Pipewire.nodes.values.filter(node => node.isSink && node.name && node.name.startsWith("alsa_output.")).length * 36 + 12 + 10 + 26 + 28 + 12 + 40
@@ -65,7 +78,6 @@ PopupWindow {
                     y: 0
                 }
 
-                // esquina superior derecha tipo cazuela
                 PathCubic {
                     x: box.width - box.lip
                     y: box.lip
@@ -104,7 +116,6 @@ PopupWindow {
                     y: box.lip
                 }
 
-                // esquina superior izquierda tipo cazuela
                 PathCubic {
                     x: 0
                     y: 0
@@ -158,7 +169,6 @@ PopupWindow {
                     y: box.height - box.radius - 1
                 }
 
-                // esquina inferior derecha: subimos el controlY y el y final 1 píxel
                 PathQuad {
                     x: box.width - box.lip - box.radius
                     y: box.height - 1
@@ -166,13 +176,11 @@ PopupWindow {
                     controlY: box.height - 1
                 }
 
-                // borde inferior abajo: se mantiene a la altura de box.height - 1
                 PathLine {
                     x: box.lip + box.radius
                     y: box.height - 1
                 }
 
-                // esquina inferior izquierda: subimos el controlY y el y final 1 píxel
                 PathQuad {
                     x: box.lip
                     y: box.height - box.radius - 1
@@ -219,11 +227,12 @@ PopupWindow {
                     height: 26
 
                     readonly property bool isCurrent: modelData === Pipewire.defaultAudioSink
+                    readonly property bool isHS80: modelData.description && modelData.description.includes("HS80")
 
                     ModuleText {
                         anchors.verticalCenter: parent.verticalCenter
                         theme: root.theme
-                        text: (isCurrent ? "● " : "○ ") + modelData.description
+                        text: (isCurrent ? "● " : "○ ") + modelData.description + (isHS80 && root.batteryText ? " (" + root.batteryText + ")" : "")
 
                         MouseArea {
                             anchors.fill: parent
@@ -312,6 +321,8 @@ PopupWindow {
     onOpenedChanged: {
         if (opened) {
             animating = true;
+            hs80BatteryProcess.running = false;
+            hs80BatteryProcess.running = true;
         } else {
             closeTimer.restart();
         }
