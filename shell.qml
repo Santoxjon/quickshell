@@ -56,12 +56,12 @@ ShellRoot {
     }
 
     Timer {
-    id: closeAudioTimer
-    interval: 1
-    repeat: false
+        id: closeAudioTimer
+        interval: 1
+        repeat: false
 
-    onTriggered: updateAudioDrawer()
-}
+        onTriggered: updateAudioDrawer()
+    }
 
     NotificationServer {
         id: notificationServer

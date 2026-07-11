@@ -18,5 +18,6 @@ QtObject {
 
     property string fontName: "JetBrainsMono Nerd Font"
     property int fontSize: 17
+    property int titleSize: 20
     property int barHeight: 28
 }

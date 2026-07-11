@@ -1,6 +1,6 @@
+// drawers/AudioDrawer.qml
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
@@ -14,195 +14,33 @@ PopupWindow {
     required property var anchorWindow
     property bool opened: false
     property bool animating: false
+    property string batteryText: ""
+    readonly property bool fullyOpened: box.fullyOpened
+
+
 
     visible: opened || animating
+    color: "transparent"
+    implicitWidth: 320
+    implicitHeight: Pipewire.nodes.values.filter(node => node.isSink && node.name && node.name.startsWith("alsa_output.")).length * 36 + 12 + 10 + 26 + 28 + 15 + 40
 
     anchor.window: anchorWindow
     anchor.rect.x: anchorWindow.width - implicitWidth - 30
     anchor.rect.y: root.theme.barHeight - 3
-    
-    property string batteryText: ""
 
     Process {
         id: hs80BatteryProcess
         command: ["cat", "/run/hs80-battery"]
         stdout: SplitParser {
-            onRead: (line) => {
-                root.batteryText = line.trim()
-            }
+            onRead: (line) => root.batteryText = line.trim()
         }
     }
 
-    implicitWidth: 320
-    implicitHeight: Pipewire.nodes.values.filter(node => node.isSink && node.name && node.name.startsWith("alsa_output.")).length * 36 + 12 + 10 + 26 + 28 + 12 + 40
-    color: "transparent"
-
-    readonly property bool fullyOpened: box.height === root.implicitHeight && root.opened
-
-    Item {
+    AudioDrawerBackground {
         id: box
-
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-
-        height: root.opened ? root.implicitHeight : 0
-        clip: true
-
-        property int lip: 18
-        property int radius: 5
-
-        Behavior on height {
-            NumberAnimation {
-                duration: 220
-                easing.type: Easing.OutCubic
-            }
-        }
-
-        Shape {
-            anchors.fill: parent
-            antialiasing: true
-
-            layer.enabled: true
-            layer.samples: 8
-
-            ShapePath {
-                strokeWidth: 0
-                fillColor: root.theme.bg
-
-                startX: 0
-                startY: 0
-
-                PathLine {
-                    x: box.width
-                    y: 0
-                }
-
-                PathCubic {
-                    x: box.width - box.lip
-                    y: box.lip
-                    control1X: box.width - 4
-                    control1Y: 0
-                    control2X: box.width - box.lip
-                    control2Y: 4
-                }
-
-                PathLine {
-                    x: box.width - box.lip
-                    y: box.height - box.radius
-                }
-
-                PathQuad {
-                    x: box.width - box.lip - box.radius
-                    y: box.height
-                    controlX: box.width - box.lip
-                    controlY: box.height
-                }
-
-                PathLine {
-                    x: box.lip + box.radius
-                    y: box.height
-                }
-
-                PathQuad {
-                    x: box.lip
-                    y: box.height - box.radius
-                    controlX: box.lip
-                    controlY: box.height
-                }
-
-                PathLine {
-                    x: box.lip
-                    y: box.lip
-                }
-
-                PathCubic {
-                    x: 0
-                    y: 0
-                    control1X: box.lip
-                    control1Y: 4
-                    control2X: 4
-                    control2Y: 0
-                }
-            }
-        }
-
-        Shape {
-            anchors.fill: parent
-            antialiasing: true
-            layer.enabled: true
-            layer.samples: 8
-
-            opacity: root.fullyOpened ? 1.0 : 0.0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: root.fullyOpened ? 0 : 200
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            ShapePath {
-                strokeWidth: 3
-                strokeColor: root.theme.topBarBottomBorder
-                fillColor: "transparent"
-
-                startX: 0
-                startY: 0
-
-                PathMove {
-                    x: box.width
-                    y: 0
-                }
-
-                PathCubic {
-                    x: box.width - box.lip
-                    y: box.lip
-                    control1X: box.width - 4
-                    control1Y: 0
-                    control2X: box.width - box.lip
-                    control2Y: 4
-                }
-
-                PathLine {
-                    x: box.width - box.lip
-                    y: box.height - box.radius - 1
-                }
-
-                PathQuad {
-                    x: box.width - box.lip - box.radius
-                    y: box.height - 1
-                    controlX: box.width - box.lip
-                    controlY: box.height - 1
-                }
-
-                PathLine {
-                    x: box.lip + box.radius
-                    y: box.height - 1
-                }
-
-                PathQuad {
-                    x: box.lip
-                    y: box.height - box.radius - 1
-                    controlX: box.lip
-                    controlY: box.height - 1
-                }
-
-                PathLine {
-                    x: box.lip
-                    y: box.lip
-                }
-
-                PathCubic {
-                    x: 0
-                    y: 0
-                    control1X: box.lip
-                    control1Y: 4
-                    control2X: 4
-                    control2Y: 0
-                }
-            }
-        }
+        theme: root.theme
+        opened: root.opened
+        implicitHeight: root.implicitHeight
 
         Column {
             anchors.fill: parent
@@ -211,12 +49,13 @@ PopupWindow {
             anchors.topMargin: 12
             anchors.bottomMargin: 12
             spacing: 10
-
             opacity: box.height / root.implicitHeight
 
             ModuleText {
                 theme: root.theme
                 text: "Salidas"
+                font.pixelSize: root.theme.titleSize
+                font.italic: true
             }
 
             Repeater {
@@ -225,7 +64,6 @@ PopupWindow {
                 delegate: Item {
                     width: parent.width
                     height: 26
-
                     readonly property bool isCurrent: modelData === Pipewire.defaultAudioSink
                     readonly property bool isHS80: modelData.description && modelData.description.includes("HS80")
 
@@ -252,70 +90,18 @@ PopupWindow {
             ModuleText {
                 theme: root.theme
                 text: "Volumen " + Math.round(volumeSlider.value) + "%"
+                anchors.horizontalCenter: parent.horizontalCenter
             }
 
-            Slider {
+            AudioSlider {
                 id: volumeSlider
-
-                width: parent.width
-                height: 28
-
-                from: 0
-                to: 100
-                stepSize: 1
-
-                readonly property var sink: Pipewire.defaultAudioSink
-                readonly property var audio: sink ? sink.audio : null
-
-                value: audio ? Math.round(audio.volume * 100) : 0
-
-                onMoved: {
-                    if (audio)
-                        audio.volume = value / 100;
-                }
-
-                background: Rectangle {
-                    x: 0
-                    y: volumeSlider.height / 2 - height / 2
-                    width: volumeSlider.width
-                    height: 15
-                    radius: 5
-                    color: root.theme.sliderEmptyBg
-
-                    Rectangle {
-                        width: volumeSlider.visualPosition * parent.width
-                        height: parent.height
-                        radius: parent.radius
-                        color: root.theme.sliderBg
-                    }
-                }
-
-                handle: Rectangle {
-                    width: 20
-                    height: 25
-                    border.width: 2
-                    border.color: root.theme.sliderHandleRectangleBorder
-                    radius: 5
-
-                    x: volumeSlider.visualPosition * (volumeSlider.width - width)
-                    y: volumeSlider.height / 2 - height / 2
-
-                    color: root.theme.sliderHandleRectangleBg
-                }
-
-                HoverHandler {
-                    cursorShape: Qt.PointingHandCursor
-                }
+                theme: root.theme
             }
         }
     }
+
     HoverHandler {
-        onHoveredChanged: {
-            if (hovered)
-                root.entered();
-            else
-                root.exited();
-        }
+        onHoveredChanged: hovered ? root.entered() : root.exited()
     }
 
     onOpenedChanged: {
