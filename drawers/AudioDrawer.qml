@@ -2,7 +2,6 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell
-import Quickshell.Io
 import Quickshell.Services.Pipewire
 
 import "../components"
@@ -14,10 +13,7 @@ PopupWindow {
     required property var anchorWindow
     property bool opened: false
     property bool animating: false
-    property string batteryText: ""
     readonly property bool fullyOpened: box.fullyOpened
-
-
 
     visible: opened || animating
     color: "transparent"
@@ -27,14 +23,6 @@ PopupWindow {
     anchor.window: anchorWindow
     anchor.rect.x: anchorWindow.width - implicitWidth - 30
     anchor.rect.y: root.theme.barHeight - 3
-
-    Process {
-        id: hs80BatteryProcess
-        command: ["cat", "/run/hs80-battery"]
-        stdout: SplitParser {
-            onRead: (line) => root.batteryText = line.trim()
-        }
-    }
 
     AudioDrawerBackground {
         id: box
@@ -66,11 +54,13 @@ PopupWindow {
                     height: 26
                     readonly property bool isCurrent: modelData === Pipewire.defaultAudioSink
                     readonly property bool isHS80: modelData.description && modelData.description.includes("HS80")
+                    readonly property string hs80Info: isHS80 && hs80Status.batteryText ? ` ${hs80Status.icon}` : ""
 
                     ModuleText {
                         anchors.verticalCenter: parent.verticalCenter
                         theme: root.theme
-                        text: (isCurrent ? "● " : "○ ") + modelData.description + (isHS80 && root.batteryText ? " (" + root.batteryText + ")" : "")
+
+                        text: `${isCurrent ? "●" : "○"} ${modelData.description}${hs80Info}`
 
                         MouseArea {
                             anchors.fill: parent
@@ -107,8 +97,6 @@ PopupWindow {
     onOpenedChanged: {
         if (opened) {
             animating = true;
-            hs80BatteryProcess.running = false;
-            hs80BatteryProcess.running = true;
         } else {
             closeTimer.restart();
         }
@@ -123,6 +111,11 @@ PopupWindow {
 
     PwObjectTracker {
         objects: Pipewire.nodes.values
+    }
+
+    Hs80Status {
+        id: hs80Status
+        active: root.opened
     }
 
     signal entered
