@@ -7,16 +7,30 @@ Item {
 
     required property var theme
 
-    property string network: "󰈀 --"
+    property string network: " --"
 
-    implicitWidth: label.implicitWidth
-    implicitHeight: label.implicitHeight
+    implicitWidth: row.implicitWidth
+    implicitHeight: row.implicitHeight
 
-    ModuleText {
-        id: label
+    Row {
+        id: row
+        spacing: 8
 
-        theme: root.theme
-        text: network
+        ModuleText {
+            id: icon
+
+            theme: root.theme
+            text: "󰈀"
+            color: root.theme.rightModuleIcon
+        }
+
+        ModuleText {
+            id: label
+
+            theme: root.theme
+            text: root.network
+            color: root.theme.fg
+        }
     }
 
     Process {

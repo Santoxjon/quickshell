@@ -9,14 +9,28 @@ Item {
 
     property string temp: "--°C"
 
-    implicitWidth: label.implicitWidth
-    implicitHeight: label.implicitHeight
+    implicitWidth: content.implicitWidth
+    implicitHeight: content.implicitHeight
 
-    ModuleText {
-        id: label
+    Row {
+        id: content
+        spacing: 8
 
-        theme: root.theme
-        text: " " + temp
+        ModuleText {
+            id: icon
+
+            theme: root.theme
+            text: ""
+            color: root.theme.rightModuleIcon
+        }
+
+        ModuleText {
+            id: label
+
+            theme: root.theme
+            color: root.theme.fg
+            text: root.temp
+        }
     }
 
     Process {

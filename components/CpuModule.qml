@@ -10,16 +10,30 @@ Item {
     required property var theme
 
     property string usage: "--%"
-
-    implicitWidth: label.implicitWidth
-    implicitHeight: label.implicitHeight
-
     property string tooltipText: "CPU"
 
-    ModuleText {
-        id: label
-        theme: root.theme
-        text: "  " + root.usage
+    implicitWidth: content.implicitWidth
+    implicitHeight: content.implicitHeight
+
+    Row {
+        id: content
+        spacing: 8
+
+        ModuleText {
+            id: icon
+
+            theme: root.theme
+            text: ""
+            color: root.theme.rightModuleIcon
+        }
+
+        ModuleText {
+            id: usageLabel
+
+            theme: root.theme
+            text: root.usage
+            color: root.theme.fg
+        }
     }
 
     MouseArea {

@@ -4,7 +4,7 @@ Text {
     required property var theme
 
     text: "|"
-    color: theme.fg
+    color: theme.separator
     font.family: theme.fontName
     font.pixelSize: theme.fontSize
 

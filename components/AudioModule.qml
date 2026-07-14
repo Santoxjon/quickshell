@@ -25,6 +25,7 @@ Item {
             width: 23
 
             text: root.audio && root.audio.muted ? "" : ""
+            color: root.theme.rightModuleIcon
         }
 
         ModuleText {

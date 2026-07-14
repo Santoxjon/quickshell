@@ -61,6 +61,7 @@ PopupWindow {
                         theme: root.theme
 
                         text: `${isCurrent ? "●" : "○"} ${modelData.description}${hs80Info}`
+                        color: isCurrent ? root.theme.audioOutputActiveText : root.theme.audioOutputText
 
                         MouseArea {
                             anchors.fill: parent

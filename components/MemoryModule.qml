@@ -11,14 +11,28 @@ Item {
     property string percentUsage: "--%"
     property string gbUsage: "--GB / --GB"
 
-    implicitWidth: label.implicitWidth
-    implicitHeight: label.implicitHeight
+    implicitWidth: content.implicitWidth
+    implicitHeight: content.implicitHeight
 
-    ModuleText {
-        id: label
+    Row {
+        id: content
+        spacing: 8
 
-        theme: root.theme
-        text: "  " + (root.showGb ? root.gbUsage : root.percentUsage)
+        ModuleText {
+            id: icon
+
+            theme: root.theme
+            text: ""
+            color: root.theme.rightModuleIcon
+        }
+
+        ModuleText {
+            id: usageLabel
+
+            theme: root.theme
+            text: (root.showGb ? root.gbUsage : root.percentUsage)
+            color: root.theme.fg
+        }
     }
 
     MouseArea {

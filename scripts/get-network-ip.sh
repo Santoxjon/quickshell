@@ -6,9 +6,9 @@ while true; do
     [ -z "$ipaddr" ] && ipaddr="--"
     
     case "$iface" in
-        wl*|wlan*) echo "󰖩 $ipaddr" ;;
-        en*|eth*)  echo "󰈀 $ipaddr" ;;
-        *)         echo "󰈀 $ipaddr" ;;
+        wl*|wlan*) echo " $ipaddr" ;;
+        en*|eth*)  echo " $ipaddr" ;;
+        *)         echo " $ipaddr" ;;
     esac
     
     sleep 2

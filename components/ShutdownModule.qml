@@ -16,6 +16,7 @@ Item {
 
         theme: root.theme
         text: root.shutdown
+        color: theme.shutdownButton
     }
 
     MouseArea {
