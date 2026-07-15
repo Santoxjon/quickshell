@@ -34,17 +34,18 @@ PanelWindow {
         readDelay.restart();
     }
 
-    GlobalShortcut {
-        name: "numLock"
-        description: "Mostrar estado de Num Lock"
+    IpcHandler {
+        target: "numLock"
 
-        onPressed: root.refreshState()
+        function refresh(): void {
+            root.refreshState();
+        }
     }
 
     Timer {
         id: readDelay
 
-        interval: 40
+        interval: 10
         repeat: false
 
         onTriggered: {
@@ -53,61 +54,38 @@ PanelWindow {
         }
     }
 
-    property var previousLedStates: ({})
-    property bool ledStatesInitialized: false
-
-    Component.onCompleted: stateReader.running = true
-
     Process {
         id: stateReader
 
         running: false
-
-        command: ["sh", "-c", "for f in /sys/class/leds/input*::numlock/brightness; do " + "[ -r \"$f\" ] || continue; " + "printf '%s=' \"$f\"; " + "cat \"$f\"; " + "done"]
+        command: ["hyprctl", "devices", "-j"]
 
         stdout: StdioCollector {
             onStreamFinished: {
-                const currentStates = {};
-                const lines = text.trim().split("\n");
+                let devices;
 
-                for (const line of lines) {
-                    const separator = line.lastIndexOf("=");
-
-                    if (separator === -1)
-                        continue;
-
-                    const path = line.substring(0, separator);
-                    const value = parseInt(line.substring(separator + 1), 10);
-
-                    currentStates[path] = value > 0;
-                }
-
-                if (!root.ledStatesInitialized) {
-                    // Primera lectura: solo guardamos el estado inicial.
-                    root.previousLedStates = currentStates;
-                    root.ledStatesInitialized = true;
+                try {
+                    devices = JSON.parse(text);
+                } catch (error) {
                     return;
                 }
 
-                let changedState = null;
+                const keyboards = devices.keyboards || [];
+                let mainKeyboard = null;
 
-                for (const path in currentStates) {
-                    if (root.previousLedStates[path] === undefined)
-                        continue;
-
-                    if (root.previousLedStates[path] !== currentStates[path]) {
-                        changedState = currentStates[path];
+                for (const keyboard of keyboards) {
+                    if (keyboard.main) {
+                        mainKeyboard = keyboard;
                         break;
                     }
                 }
 
-                if (changedState !== null) {
-                    root.numLockEnabled = changedState;
-                } else {
-                    root.numLockEnabled = !root.numLockEnabled;
+                if (!mainKeyboard) {
+                    return;
                 }
 
-                root.previousLedStates = currentStates;
+                root.numLockEnabled = mainKeyboard.numLock === true;
+
                 root.opened = true;
                 hideTimer.restart();
             }
@@ -117,7 +95,7 @@ PanelWindow {
     Timer {
         id: hideTimer
 
-        interval: 500
+        interval: 850
         repeat: false
 
         onTriggered: root.opened = false
@@ -142,7 +120,7 @@ PanelWindow {
 
             Behavior on y {
                 NumberAnimation {
-                    duration: 220
+                    duration: 250
                     easing.type: Easing.OutCubic
                 }
             }
@@ -150,7 +128,7 @@ PanelWindow {
 
         Behavior on opacity {
             NumberAnimation {
-                duration: 220
+                duration: 250
                 easing.type: Easing.OutCubic
             }
         }
@@ -161,7 +139,7 @@ PanelWindow {
             width: 100
             height: 100
 
-            source: Quickshell.shellDir + "/assets/" + (root.numLockEnabled ? "numUnlocked.png" : "numLocked.png")
+            source: Quickshell.shellDir + "/assets/" + (!root.numLockEnabled ? "numUnlocked.png" : "numLocked.png")
 
             fillMode: Image.PreserveAspectFit
             smooth: true
