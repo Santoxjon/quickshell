@@ -99,4 +99,16 @@ ShellRoot {
     function updateAudioDrawer() {
         audioDrawer.opened = audioHover || drawerHover;
     }
+
+    VolumeFlyout {
+        theme: appTheme
+    }
+
+    NumLockFlyout {
+        theme: appTheme
+    }
+
+    CapsLockFlyout {
+        theme: appTheme
+    }
 }
