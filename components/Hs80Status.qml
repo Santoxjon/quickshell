@@ -9,11 +9,26 @@ Item {
     property string batteryText: ""
     property string chargingStatus: ""
 
+    property int chargingFrame: 0
+
     readonly property int batteryPercentage: parseInt(batteryText, 10) || 0
 
     readonly property bool charging: chargingStatus === "charging"
 
-    readonly property string icon: charging ? "󰂄" : batteryIcon(batteryPercentage)
+    readonly property var chargingIcons: ["󰢟", "󰢜", "󰂆", "󰂇", "󰂈", "󰢝", "󰂉", "󰢞", "󰂊", "󰂋", "󰂅",]
+
+    readonly property int chargingStartIndex: {
+        if (batteryPercentage <= 10)
+            return 0;
+
+        return Math.min(chargingIcons.length - 1, Math.floor(batteryPercentage / 10));
+    }
+
+    readonly property int chargingFrameCount: chargingIcons.length - chargingStartIndex
+
+    readonly property string chargingIcon: chargingIcons[chargingStartIndex + chargingFrame]
+
+    readonly property string icon: charging ? chargingIcon : batteryIcon(batteryPercentage)
 
     visible: false
     width: 0
@@ -38,6 +53,8 @@ Item {
     }
 
     Timer {
+        id: refreshTimer
+
         interval: 2000
         repeat: true
         running: root.active
@@ -45,9 +62,35 @@ Item {
         onTriggered: root.refresh()
     }
 
+    Timer {
+        id: chargingAnimationTimer
+
+        interval: 750
+        repeat: true
+        running: root.active && root.charging && root.chargingFrameCount > 1
+
+        onTriggered: {
+            chargingFrame++;
+
+            if (chargingFrame >= chargingFrameCount)
+                chargingFrame = 0;
+        }
+    }
+
     onActiveChanged: {
-        if (active)
+        if (active) {
             refresh();
+        } else {
+            chargingFrame = 0;
+        }
+    }
+
+    onChargingChanged: {
+        chargingFrame = 0;
+    }
+
+    onChargingStartIndexChanged: {
+        chargingFrame = 0;
     }
 
     function refresh() {
