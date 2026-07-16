@@ -30,6 +30,7 @@ QtObject {
 
     // Dimensions
     readonly property int barHeight: 28
+    readonly property int thinBorderWidth: 1
     readonly property int borderWidth: 2
     readonly property int accentBorderWidth: 3
     readonly property int cornerRadius: 5
@@ -39,6 +40,13 @@ QtObject {
     // Motion
     readonly property int fastAnimationDuration: 80
     readonly property int animationDuration: 220
+
+    // Tooltips
+    readonly property int tooltipOffset: 6
+    readonly property int tooltipHorizontalPadding: 12
+    readonly property int tooltipVerticalPadding: 9
+    readonly property int tooltipCornerRadius: 4
+    readonly property real tooltipLineHeight: 1.25
 
     // Top bar
     readonly property color topBarBottomBorder: palette4
