@@ -1,9 +1,7 @@
-import Quickshell.Io
+import QtQml
 
-Process {
+LineProcess {
     id: root
-
-    required property string logName
 
     signal jsonReceived(var value)
 
@@ -15,11 +13,5 @@ Process {
         }
     }
 
-    stdout: SplitParser {
-        onRead: line => root.parseLine(line)
-    }
-
-    stderr: SplitParser {
-        onRead: line => console.warn(`${root.logName}: ${line}`)
-    }
+    onLineReceived: line => root.parseLine(line)
 }

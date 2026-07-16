@@ -1,44 +1,38 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
 Item {
     id: root
 
     required property var theme
 
-    property string temp: "--°C"
+    property string temperatureText: "--°C"
 
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
 
     Row {
         id: content
-        spacing: 8
+        spacing: root.theme.moduleSpacing
 
         ModuleText {
-            id: icon
-
             theme: root.theme
             text: ""
             color: root.theme.rightModuleIcon
         }
 
         ModuleText {
-            id: label
-
             theme: root.theme
             color: root.theme.fg
-            text: root.temp
+            text: root.temperatureText
         }
     }
 
-    Process {
+    LineProcess {
+        logName: "CPU temperature"
         running: true
         command: ["bash", Quickshell.shellDir + "/scripts/get-cpu-temp.sh"]
 
-        stdout: SplitParser {
-            onRead: data => root.temp = data.trim()
-        }
+        onLineReceived: line => root.temperatureText = line.trim() || "--°C"
     }
 }
