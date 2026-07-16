@@ -1,4 +1,3 @@
-// popups/CapsLockFlyout.qml
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
@@ -11,11 +10,13 @@ PanelWindow {
 
     property bool capsLockEnabled: false
     property bool opened: false
-
+    property bool stateInitialized: false
     property var previousLedStates: ({})
-    property bool ledStatesInitialized: false
 
-    visible: opened || flyout.opacity > 0
+    readonly property int stateReadDelay: 40
+    readonly property int displayDuration: 500
+
+    visible: root.opened || flyout.opacity > 0
 
     anchors {
         left: true
@@ -23,9 +24,9 @@ PanelWindow {
         bottom: true
     }
 
-    margins.bottom: 100
+    margins.bottom: root.theme.lockFlyoutBottomMargin
 
-    implicitHeight: 150
+    implicitHeight: root.theme.lockFlyoutPanelHeight
 
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
@@ -35,13 +36,13 @@ PanelWindow {
 
     Component.onCompleted: stateReader.running = true
 
-    function refreshState() {
+    function refreshState(): void {
         readDelay.restart();
     }
 
     GlobalShortcut {
         name: "capsLock"
-        description: "Mostrar estado de Caps Lock"
+        description: "Show caps lock state flyout"
 
         onPressed: root.refreshState()
     }
@@ -49,8 +50,7 @@ PanelWindow {
     Timer {
         id: readDelay
 
-        interval: 40
-        repeat: false
+        interval: root.stateReadDelay
 
         onTriggered: {
             if (!stateReader.running)
@@ -61,14 +61,14 @@ PanelWindow {
     Process {
         id: stateReader
 
-        running: false
-
         command: ["sh", "-c", "for f in /sys/class/leds/input*::capslock/brightness; do " + "[ -r \"$f\" ] || continue; " + "printf '%s=' \"$f\"; " + "cat \"$f\"; " + "done"]
 
         stdout: StdioCollector {
+            id: stateOutput
+
             onStreamFinished: {
                 const currentStates = {};
-                const lines = text.trim().split("\n");
+                const lines = stateOutput.text.trim().split("\n");
 
                 for (const line of lines) {
                     const separator = line.lastIndexOf("=");
@@ -77,38 +77,49 @@ PanelWindow {
                         continue;
 
                     const path = line.substring(0, separator);
-                    const value = parseInt(line.substring(separator + 1), 10);
+                    const value = Number.parseInt(line.substring(separator + 1), 10);
 
-                    currentStates[path] = value > 0;
+                    if (Number.isFinite(value))
+                        currentStates[path] = value > 0;
                 }
 
-                if (!root.ledStatesInitialized) {
+                if (Object.keys(currentStates).length === 0) {
+                    console.warn("CapsLockFlyout: no readable Caps Lock LEDs found");
+                    return;
+                }
+
+                if (!root.stateInitialized) {
                     root.previousLedStates = currentStates;
-                    root.ledStatesInitialized = true;
+                    root.capsLockEnabled = Object.values(currentStates).some(enabled => enabled);
+                    root.stateInitialized = true;
                     return;
                 }
 
                 let changedState = null;
 
                 for (const path in currentStates) {
-                    if (root.previousLedStates[path] === undefined)
-                        continue;
-
-                    if (root.previousLedStates[path] !== currentStates[path]) {
+                    if (root.previousLedStates[path] !== undefined
+                            && root.previousLedStates[path] !== currentStates[path]) {
                         changedState = currentStates[path];
                         break;
                     }
                 }
 
-                if (changedState !== null) {
-                    root.capsLockEnabled = changedState;
-                } else {
-                    root.capsLockEnabled = !root.capsLockEnabled;
-                }
-
+                root.capsLockEnabled = changedState ?? !root.capsLockEnabled;
                 root.previousLedStates = currentStates;
                 root.opened = true;
                 hideTimer.restart();
+            }
+        }
+
+        stderr: StdioCollector {
+            id: stateError
+
+            onStreamFinished: {
+                const message = stateError.text.trim();
+
+                if (message)
+                    console.warn(`CapsLockFlyout: ${message}`);
             }
         }
     }
@@ -116,8 +127,7 @@ PanelWindow {
     Timer {
         id: hideTimer
 
-        interval: 500
-        repeat: false
+        interval: root.displayDuration
 
         onTriggered: root.opened = false
     }
@@ -128,20 +138,20 @@ PanelWindow {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        width: 120
-        height: 120
+        width: root.theme.lockFlyoutSize
+        height: root.theme.lockFlyoutSize
 
-        radius: 20
-        color: root.theme.palette2
+        radius: root.theme.lockFlyoutRadius
+        color: root.theme.lockFlyoutBg
 
-        opacity: root.opened ? 0.9 : 0
+        opacity: root.opened ? root.theme.lockFlyoutOpacity : 0
 
         transform: Translate {
-            y: root.opened ? 0 : 16
+            y: root.opened ? 0 : root.theme.lockFlyoutHiddenOffset
 
             Behavior on y {
                 NumberAnimation {
-                    duration: 220
+                    duration: root.theme.animationDuration
                     easing.type: Easing.OutCubic
                 }
             }
@@ -149,7 +159,7 @@ PanelWindow {
 
         Behavior on opacity {
             NumberAnimation {
-                duration: 220
+                duration: root.theme.animationDuration
                 easing.type: Easing.OutCubic
             }
         }
@@ -157,10 +167,10 @@ PanelWindow {
         Image {
             anchors.centerIn: parent
 
-            width: 100
-            height: 100
+            width: root.theme.lockFlyoutIconSize
+            height: width
 
-            source: Quickshell.shellDir + "/assets/" + (!root.capsLockEnabled ? "capsUnlocked.png" : "capsLocked.png")
+            source: Quickshell.shellDir + "/assets/" + (root.capsLockEnabled ? "capsLocked.png" : "capsUnlocked.png")
 
             fillMode: Image.PreserveAspectFit
             smooth: true
