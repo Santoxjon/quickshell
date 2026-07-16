@@ -31,7 +31,7 @@ Item {
     LineProcess {
         logName: "CPU temperature"
         running: true
-        command: ["bash", Quickshell.shellDir + "/scripts/get-cpu-temp.sh"]
+        command: [Quickshell.shellDir + "/scripts/get-cpu-temp.sh"]
 
         onLineReceived: line => root.temperatureText = line.trim() || "--°C"
     }

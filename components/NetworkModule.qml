@@ -31,7 +31,7 @@ Item {
     LineProcess {
         logName: "Network address"
         running: true
-        command: ["bash", Quickshell.shellDir + "/scripts/get-network-ip.sh"]
+        command: [Quickshell.shellDir + "/scripts/get-network-ip.sh"]
 
         onLineReceived: line => root.ipAddress = line.trim() || "--"
     }
