@@ -1,44 +1,38 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
 Item {
     id: root
 
     required property var theme
 
-    property string network: " --"
+    property string ipAddress: "--"
 
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 
     Row {
         id: row
-        spacing: 8
+        spacing: root.theme.moduleSpacing
 
         ModuleText {
-            id: icon
-
             theme: root.theme
             text: "󰈀"
             color: root.theme.rightModuleIcon
         }
 
         ModuleText {
-            id: label
-
             theme: root.theme
-            text: root.network
+            text: root.ipAddress
             color: root.theme.fg
         }
     }
 
-    Process {
+    LineProcess {
+        logName: "Network address"
         running: true
         command: ["bash", Quickshell.shellDir + "/scripts/get-network-ip.sh"]
 
-        stdout: SplitParser {
-            onRead: data => root.network = data.trim()
-        }
+        onLineReceived: line => root.ipAddress = line.trim() || "--"
     }
 }
