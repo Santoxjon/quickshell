@@ -1,36 +1,31 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
 Item {
     id: root
 
     required property var theme
 
-    property bool showGb: false
-    property string percentUsage: "--%"
-    property string gbUsage: "--GB / --GB"
+    property bool showGigabytes: false
+    property string percentageUsage: "--%"
+    property string gigabyteUsage: "--GB / --GB"
 
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
 
     Row {
         id: content
-        spacing: 8
+        spacing: root.theme.moduleSpacing
 
         ModuleText {
-            id: icon
-
             theme: root.theme
             text: ""
             color: root.theme.rightModuleIcon
         }
 
         ModuleText {
-            id: usageLabel
-
             theme: root.theme
-            text: (root.showGb ? root.gbUsage : root.percentUsage)
+            text: root.showGigabytes ? root.gigabyteUsage : root.percentageUsage
             color: root.theme.fg
         }
     }
@@ -38,20 +33,18 @@ Item {
     MouseArea {
         anchors.fill: parent
         cursorShape: Qt.PointingHandCursor
-        onClicked: root.showGb = !root.showGb
+
+        onClicked: root.showGigabytes = !root.showGigabytes
     }
 
-    Process {
+    JsonLineProcess {
+        logName: "Memory usage"
         running: true
-        command: ["bash", Quickshell.shellDir + "/scripts/get-memory-usage.sh"]
+        command: [Quickshell.shellDir + "/scripts/get-memory-usage.sh"]
 
-        stdout: SplitParser {
-            onRead: data => {
-                const mem = JSON.parse(data);
-
-                root.percentUsage = mem.percentUsage;
-                root.gbUsage = mem.gbUsage;
-            }
+        onJsonReceived: memory => {
+            root.percentageUsage = typeof memory.percentUsage === "string" ? memory.percentUsage : "--%";
+            root.gigabyteUsage = typeof memory.gbUsage === "string" ? memory.gbUsage : "--GB / --GB";
         }
     }
 }
