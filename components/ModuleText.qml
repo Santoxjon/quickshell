@@ -1,10 +1,16 @@
 import QtQuick
 
 Text {
+    id: root
+
     required property var theme
 
-    color: theme.fg
-    font.family: theme.fontName
-    font.pixelSize: theme.fontSize
-    font.weight: Font.ExtraBold
+    color: root.theme.fg
+    textFormat: Text.PlainText
+
+    font {
+        family: root.theme.fontName
+        pixelSize: root.theme.fontSize
+        weight: Font.ExtraBold
+    }
 }
