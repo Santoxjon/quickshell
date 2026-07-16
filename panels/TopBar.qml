@@ -6,7 +6,7 @@ import Quickshell.Wayland
 import "../components"
 
 PanelWindow {
-    id: bar
+    id: root
 
     required property var theme
     property bool activeBorder: false
@@ -20,72 +20,70 @@ PanelWindow {
         right: true
     }
 
-    implicitHeight: theme.barHeight
+    implicitHeight: root.theme.barHeight
     color: "transparent"
 
     Rectangle {
         anchors.fill: parent
-        color: theme.bg
+        color: root.theme.bg
         clip: true
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 0
-            anchors.rightMargin: 5
+            anchors.rightMargin: root.theme.topBarContentRightMargin
             spacing: 0
 
             Item {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                height: parent.height
+                Layout.fillHeight: true
 
                 Workspaces {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    theme: bar.theme
+                    theme: root.theme
                 }
             }
 
             Item {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                height: parent.height
+                Layout.fillHeight: true
 
                 Clock {
                     anchors.centerIn: parent
-                    theme: bar.theme
+                    theme: root.theme
                 }
             }
 
             Item {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                height: parent.height
+                Layout.fillHeight: true
 
                 RightModules {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    theme: bar.theme
+                    theme: root.theme
 
-                    onAudioHovered: bar.audioHovered()
-                    onAudioUnhovered: bar.audioUnhovered()
+                    onAudioHovered: root.audioHovered()
+                    onAudioUnhovered: root.audioUnhovered()
                 }
             }
         }
 
         Rectangle {
-            id: bottomBorder
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            height: 3
-            color: bar.theme.topBarBottomBorder
+            height: root.theme.accentBorderWidth
+            color: root.theme.topBarBottomBorder
 
-            opacity: bar.activeBorder ? 1.0 : 0.0
+            opacity: root.activeBorder ? 1 : 0
 
             Behavior on opacity {
                 NumberAnimation {
-                    duration: bar.activeBorder ? 0 : 200
+                    duration: root.activeBorder ? 0 : root.theme.animationDuration
                     easing.type: Easing.OutCubic
                 }
             }
