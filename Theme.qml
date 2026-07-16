@@ -54,6 +54,9 @@ QtObject {
     // Audio outputs
     readonly property color audioOutputActiveText: palette4
     readonly property color audioOutputText: palette3
+    readonly property int audioModuleSpacing: 6
+    readonly property int audioModuleIconWidth: 23
+    readonly property int audioModuleValueWidth: 42
 
     // Volume slider
     readonly property color sliderBg: palette3

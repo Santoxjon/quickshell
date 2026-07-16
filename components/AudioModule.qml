@@ -5,42 +5,56 @@ Item {
     id: root
 
     required property var theme
+    readonly property var sink: Pipewire.defaultAudioSink
+    readonly property var audio: sink ? sink.audio : null
+    readonly property int volume: root.audio ? Math.round(root.audio.volume * 100) : -1
+    readonly property int volumeStep: 5
+    readonly property int wheelStepAngle: 120
+    readonly property string volumeIcon: root.audio && root.audio.muted ? "" : ""
+    readonly property string volumeText: !root.audio ? "--%" : root.audio.muted ? "muted" : root.volume + "%"
 
     signal hovered
     signal unhovered
 
-    readonly property var sink: Pipewire.defaultAudioSink
-    readonly property var audio: sink ? sink.audio : null
-    readonly property int volume: root.audio ? Math.round(root.audio.volume * 100) : -1
+    function adjustVolume(stepCount: int): void {
+        if (!root.audio || stepCount === 0)
+            return;
+
+        const nextVolume = Math.max(0, Math.min(100, root.volume + stepCount * root.volumeStep));
+
+        root.audio.volume = nextVolume / 100;
+    }
 
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 
     Row {
         id: row
-        spacing: 6
+        spacing: root.theme.audioModuleSpacing
 
         ModuleText {
             theme: root.theme
-            width: 23
+            width: root.theme.audioModuleIconWidth
 
-            text: root.audio && root.audio.muted ? "" : ""
+            text: root.volumeIcon
             color: root.theme.rightModuleIcon
         }
 
         ModuleText {
             theme: root.theme
-            width: 42
+            width: root.theme.audioModuleValueWidth
             horizontalAlignment: Text.AlignRight
 
-            text: !root.audio ? "--%" : root.audio.muted ? "muted" : root.volume + "%"
+            text: root.volumeText
         }
     }
 
     MouseArea {
-        property int wheelAccum: 0
+        property int wheelAccumulator: 0
+
         anchors.fill: parent
         hoverEnabled: true
+        acceptedButtons: Qt.NoButton
 
         onEntered: root.hovered()
         onExited: root.unhovered()
@@ -49,17 +63,16 @@ Item {
             if (!root.audio)
                 return;
 
-            wheelAccum += wheel.angleDelta.y;
+            wheelAccumulator += wheel.angleDelta.y;
 
-            if (Math.abs(wheelAccum) < 120)
+            const stepCount = Math.trunc(wheelAccumulator / root.wheelStepAngle);
+
+            if (stepCount === 0)
                 return;
 
-            const delta = wheelAccum > 0 ? 5 : -5;
-            wheelAccum = 0;
+            wheelAccumulator -= stepCount * root.wheelStepAngle;
 
-            const newVolume = Math.max(0, Math.min(100, root.volume + delta));
-
-            root.audio.volume = newVolume / 100;
+            root.adjustVolume(stepCount);
         }
     }
 
