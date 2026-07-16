@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell
 
-import "../components"
+import qs.components
 
 PopupWindow {
     id: root

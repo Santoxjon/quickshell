@@ -1,6 +1,8 @@
 import QtQuick
 import Quickshell.Services.Pipewire
 
+import qs.components
+
 Item {
     id: root
 

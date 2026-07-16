@@ -1,5 +1,7 @@
 import QtQuick
 
+import qs.components
+
 Row {
     id: root
 

@@ -1,7 +1,9 @@
 import QtQuick
 import Quickshell
 
-import "../popups"
+import qs.components
+import qs.popups
+import qs.services
 
 Item {
     id: root

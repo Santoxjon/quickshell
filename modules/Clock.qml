@@ -1,5 +1,7 @@
 import QtQuick
 
+import qs.components
+
 ModuleText {
     id: root
 

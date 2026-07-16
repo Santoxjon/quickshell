@@ -4,7 +4,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Pipewire
 
-import "../components"
+import qs.components
+import qs.services
 
 PopupWindow {
     id: root

@@ -4,10 +4,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
 
-import "."
-import "./panels"
-import "./popups"
-import "./drawers"
+import qs.drawers
+import qs.panels
+import qs.popups
 
 ShellRoot {
     id: root

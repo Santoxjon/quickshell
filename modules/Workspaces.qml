@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Hyprland
 
+import qs.components
+
 Row {
     id: root
 

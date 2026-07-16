@@ -150,7 +150,7 @@ Missing or incorrect Nerd Font configuration usually appears as empty squares in
 
 ### Workspaces
 
-Edit [`components/Workspaces.qml`](components/Workspaces.qml) to change workspace labels. Workspaces 1 through 4 are always visible; workspaces 5 through 9 appear when they exist.
+Edit [`modules/Workspaces.qml`](modules/Workspaces.qml) to change workspace labels. Workspaces 1 through 4 are always visible; workspaces 5 through 9 appear when they exist.
 
 ### Application indicators
 
@@ -241,7 +241,9 @@ HS80 support is optional; the rest of the shell works without these services.
 shell.qml       Main Quickshell entry point
 Theme.qml       Shared colors, fonts, and dimensions
 panels/         Top-level panel windows
-components/     Reusable bar and drawer components
+modules/        Complete bar features and status modules
+components/     Reusable visual primitives
+services/       Nonvisual state and process adapters
 drawers/        Expandable audio-device UI
 popups/         Notifications, tooltips, and flyouts
 scripts/        System-information helpers and HS80 daemons
