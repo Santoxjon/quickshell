@@ -1,119 +1,78 @@
-// hs80-charging-daemon.c
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
+#define _POSIX_C_SOURCE 200809L
+
+#include "hs80-daemon-common.h"
+
 #include <stdint.h>
-#include <errno.h>
-#include <string.h>
-#include <dirent.h>
-#include <stdlib.h>
 
-#define OUT "/run/hs80-charging"
-#define PID "00000A6B"
+#define OUTPUT_PATH "/run/hs80-charging"
 
-static void write_state(const char *state) {
-    FILE *out = fopen(OUT, "w");
-    if (out) {
-        fprintf(out, "%s\n", state);
-        fclose(out);
-    }
+enum {
+    CHARGING_REPORT_KIND = 0x10,
+    CHARGING_REPORT_MIN_SIZE = 6,
+    CHARGING_STATE = 0x01,
+    DISCHARGING_STATE = 0x02,
+};
+
+static Hs80StatusCache status_cache;
+
+static int publish_charging_state(const char *state) {
+    const int result = hs80_publish_status(OUTPUT_PATH, state, &status_cache);
+
+    if (result < 0)
+        perror("hs80-charging: write status");
+
+    return result;
 }
 
-static int is_hs80_hidraw(const char *name) {
-    char path[256];
-    snprintf(path, sizeof(path), "/sys/class/hidraw/%s/device/uevent", name);
+static void handle_report(const uint8_t *report, ssize_t size) {
+    if (size < CHARGING_REPORT_MIN_SIZE)
+        return;
 
-    FILE *f = fopen(path, "r");
-    if (!f) return 0;
+    if (report[HS80_REPORT_KIND_OFFSET] != CHARGING_REPORT_KIND)
+        return;
 
-    char line[256];
-    int found = 0;
-
-    while (fgets(line, sizeof(line), f)) {
-        if (strstr(line, "HID_ID=") && strstr(line, PID)) {
-            found = 1;
+    switch (report[HS80_REPORT_VALUE_OFFSET]) {
+        case CHARGING_STATE:
+            publish_charging_state("charging");
             break;
-        }
+        case DISCHARGING_STATE:
+            publish_charging_state("discharging");
+            break;
+        default:
+            publish_charging_state("unknown");
+            break;
     }
-
-    fclose(f);
-    return found;
-}
-
-static int open_hs80(void) {
-    DIR *dir = opendir("/sys/class/hidraw");
-    if (!dir) return -1;
-
-    struct dirent *entry;
-    int best_num = 9999;
-
-    while ((entry = readdir(dir))) {
-        if (strncmp(entry->d_name, "hidraw", 6) != 0)
-            continue;
-
-        if (!is_hs80_hidraw(entry->d_name))
-            continue;
-
-        int num = atoi(entry->d_name + 6);
-
-        if (num < best_num)
-            best_num = num;
-    }
-
-    closedir(dir);
-
-    if (best_num == 9999)
-        return -1;
-
-    char dev[64];
-    snprintf(dev, sizeof(dev), "/dev/hidraw%d", best_num);
-
-    int fd = open(dev, O_RDONLY);
-    if (fd >= 0)
-        fprintf(stderr, "Using %s\n", dev);
-
-    return fd;
 }
 
 int main(void) {
-    write_state("unknown");
+    if (publish_charging_state("unknown") < 0)
+        return EXIT_FAILURE;
 
-    int fd = open_hs80();
+    for (;;) {
+        const int file_descriptor = hs80_wait_for_device();
 
-    if (fd < 0) {
-        perror("open_hs80");
-        return 1;
-    }
+        for (;;) {
+            uint8_t report[HS80_REPORT_SIZE];
+            const ssize_t size = read(file_descriptor, report, sizeof(report));
 
-    unsigned char buf[65];
-
-    while (1) {
-        ssize_t n = read(fd, buf, sizeof(buf));
-
-        if (n < 0) {
-            perror("read");
-            close(fd);
-
-            write_state("unknown");
-
-            sleep(1);
-            fd = open_hs80();
-            continue;
-        }
-
-        if (n == 0) {
-            sleep(1);
-            continue;
-        }
-
-        if (n >= 6 && buf[3] == 0x10) {
-            if (buf[5] == 0x01) {
-                write_state("charging");
-            } else if (buf[5] == 0x02) {
-                write_state("discharging");
-            } else {
-                write_state("unknown");
+            if (size > 0) {
+                handle_report(report, size);
+                continue;
             }
+
+            if (size < 0 && errno == EINTR)
+                continue;
+
+            if (size < 0)
+                perror("hs80-charging: read");
+            else
+                fprintf(stderr, "hs80-charging: device disconnected\n");
+
+            break;
         }
+
+        close(file_descriptor);
+        publish_charging_state("unknown");
+        sleep(HS80_RECONNECT_DELAY_SECONDS);
     }
 }

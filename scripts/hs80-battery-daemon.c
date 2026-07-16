@@ -1,107 +1,77 @@
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
+#define _POSIX_C_SOURCE 200809L
+
+#include "hs80-daemon-common.h"
+
 #include <stdint.h>
-#include <errno.h>
-#include <string.h>
-#include <dirent.h>
-#include <stdlib.h>
 
-#define OUT "/run/hs80-battery"
-#define PID "00000A6B"
+#define OUTPUT_PATH "/run/hs80-battery"
 
-static int is_hs80_hidraw(const char *name) {
-    char path[256];
-    snprintf(path, sizeof(path), "/sys/class/hidraw/%s/device/uevent", name);
+enum {
+    BATTERY_REPORT_KIND = 0x0f,
+    BATTERY_RAW_HIGH_OFFSET = 6,
+    BATTERY_REPORT_MIN_SIZE = 7,
+};
 
-    FILE *f = fopen(path, "r");
-    if (!f) return 0;
+static Hs80StatusCache status_cache;
 
-    char line[256];
-    int found = 0;
+static int publish_battery(const char *state) {
+    const int result = hs80_publish_status(OUTPUT_PATH, state, &status_cache);
 
-    while (fgets(line, sizeof(line), f)) {
-        if (strstr(line, "HID_ID=") && strstr(line, PID)) {
-            found = 1;
-            break;
-        }
-    }
+    if (result < 0)
+        perror("hs80-battery: write status");
 
-    fclose(f);
-    return found;
+    return result;
 }
 
-static int open_hs80(void) {
-    DIR *dir = opendir("/sys/class/hidraw");
-    if (!dir) return -1;
+static void handle_report(const uint8_t *report, ssize_t size) {
+    if (size < BATTERY_REPORT_MIN_SIZE)
+        return;
 
-    struct dirent *entry;
-    int best_num = 9999;
+    if (report[HS80_REPORT_KIND_OFFSET] != BATTERY_REPORT_KIND)
+        return;
 
-    while ((entry = readdir(dir))) {
-        if (strncmp(entry->d_name, "hidraw", 6) != 0)
-            continue;
+    const uint16_t raw_percentage =
+        (uint16_t)report[HS80_REPORT_VALUE_OFFSET]
+        | ((uint16_t)report[BATTERY_RAW_HIGH_OFFSET] << 8);
+    const unsigned int percentage = raw_percentage / 10;
 
-        if (!is_hs80_hidraw(entry->d_name))
-            continue;
+    if (percentage > 100)
+        return;
 
-        int num = atoi(entry->d_name + 6);
-
-        if (num < best_num)
-            best_num = num;
-    }
-
-    closedir(dir);
-
-    if (best_num == 9999)
-        return -1;
-
-    char dev[64];
-    snprintf(dev, sizeof(dev), "/dev/hidraw%d", best_num);
-
-    int fd = open(dev, O_RDONLY);
-    if (fd >= 0)
-        fprintf(stderr, "Using %s\n", dev);
-
-    return fd;
+    char state[8];
+    snprintf(state, sizeof(state), "%u%%", percentage);
+    publish_battery(state);
 }
 
 int main(void) {
-    int fd = open_hs80();
+    if (publish_battery("") < 0)
+        return EXIT_FAILURE;
 
-    if (fd < 0) {
-        perror("open_hs80");
-        return 1;
-    }
+    for (;;) {
+        const int file_descriptor = hs80_wait_for_device();
 
-    unsigned char buf[65];
+        for (;;) {
+            uint8_t report[HS80_REPORT_SIZE];
+            const ssize_t size = read(file_descriptor, report, sizeof(report));
 
-    while (1) {
-        ssize_t n = read(fd, buf, sizeof(buf));
-
-        if (n < 0) {
-            perror("read");
-            close(fd);
-
-            sleep(1);
-            fd = open_hs80();
-            continue;
-        }
-
-        if (n == 0) {
-            sleep(1);
-            continue;
-        }
-
-        if (n >= 7 && buf[3] == 0x0f) {
-            int raw = buf[5] | (buf[6] << 8);
-            int percent = raw / 10;
-
-            FILE *out = fopen(OUT, "w");
-            if (out) {
-                fprintf(out, "%d%%\n", percent);
-                fclose(out);
+            if (size > 0) {
+                handle_report(report, size);
+                continue;
             }
+
+            if (size < 0 && errno == EINTR)
+                continue;
+
+            if (size < 0)
+                perror("hs80-battery: read");
+            else
+                fprintf(stderr, "hs80-battery: device disconnected\n");
+
+            break;
         }
+
+        close(file_descriptor);
+        publish_battery("");
+        sleep(HS80_RECONNECT_DELAY_SECONDS);
     }
 }
