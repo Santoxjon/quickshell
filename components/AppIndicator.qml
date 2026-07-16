@@ -6,47 +6,41 @@ Row {
     id: root
 
     required property var theme
+    property var activeApplications: []
+    readonly property var supportedApplications: ["discord", "steam"]
 
-    height: parent.height
-    spacing: 8
+    anchors.verticalCenter: parent.verticalCenter
+    height: root.theme.appIndicatorIconSize
+    spacing: root.theme.appIndicatorSpacing
 
-    property bool discordOpen: false
-    property bool steamOpen: false
+    function updateActiveApplications(line: string): void {
+        const state = line.trim();
 
-    function setState(line) {
-        const parts = line.trim().split(" ");
-        root.discordOpen = parts.includes("discord");
-        root.steamOpen = parts.includes("steam");
+        root.activeApplications = state.length > 0 ? state.split(/\s+/) : [];
     }
 
-    Image {
-        visible: root.discordOpen
-        width: 17
-        height: 17
-        sourceSize.width: 17
-        sourceSize.height: 17
-        fillMode: Image.PreserveAspectFit
-        source: Quickshell.shellDir + "/assets/discord.png"
-        anchors.verticalCenter: parent.verticalCenter
-    }
+    Repeater {
+        model: root.supportedApplications
 
-    Image {
-        visible: root.steamOpen
-        width: 17
-        height: 17
-        sourceSize.width: 17
-        sourceSize.height: 17
-        fillMode: Image.PreserveAspectFit
-        anchors.verticalCenter: parent.verticalCenter
-        source: Quickshell.shellDir + "/assets/steam.png"
+        delegate: Image {
+            required property string modelData
+
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.activeApplications.includes(modelData)
+            width: root.theme.appIndicatorIconSize
+            height: width
+            sourceSize: Qt.size(width, height)
+            fillMode: Image.PreserveAspectFit
+            source: Quickshell.shellDir + "/assets/" + modelData + ".png"
+        }
     }
 
     Process {
         running: true
-        command: ["bash", Quickshell.shellDir + "/scripts/app-indicator.sh"]
+        command: [Quickshell.shellDir + "/scripts/app-indicator.sh"]
 
         stdout: SplitParser {
-            onRead: line => root.setState(line)
+            onRead: line => root.updateActiveApplications(line)
         }
         stderr: SplitParser {
             onRead: line => console.log("app-indicator error:", line)

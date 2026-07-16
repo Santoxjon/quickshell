@@ -46,6 +46,10 @@ QtObject {
     readonly property int workspaceHorizontalPadding: 12
     readonly property int workspaceVerticalPadding: 4
 
+    // Application indicators
+    readonly property int appIndicatorIconSize: 17
+    readonly property int appIndicatorSpacing: 8
+
     // Audio outputs
     readonly property color audioOutputActiveText: palette4
     readonly property color audioOutputText: palette3
