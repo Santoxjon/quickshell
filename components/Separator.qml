@@ -1,15 +1,10 @@
 import QtQuick
 
-Text {
-    required property var theme
+ModuleText {
+    id: root
 
     text: "|"
-    color: theme.separator
-    font.family: theme.fontName
-    font.pixelSize: theme.fontSize
-
-    leftPadding: 6
-    rightPadding: 6
-
-    font.weight: Font.ExtraBold
+    color: root.theme.separator
+    leftPadding: root.theme.separatorHorizontalPadding
+    rightPadding: root.theme.separatorHorizontalPadding
 }
