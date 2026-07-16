@@ -1,7 +1,5 @@
-// popups/NumLockFlyout.qml
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
 import Quickshell.Io
 
 PanelWindow {
@@ -12,7 +10,10 @@ PanelWindow {
     property bool numLockEnabled: false
     property bool opened: false
 
-    visible: opened || flyout.opacity > 0
+    readonly property int stateReadDelay: 10
+    readonly property int displayDuration: 850
+
+    visible: root.opened || flyout.opacity > 0
 
     anchors {
         left: true
@@ -20,9 +21,9 @@ PanelWindow {
         bottom: true
     }
 
-    margins.bottom: 100
+    margins.bottom: root.theme.lockFlyoutBottomMargin
 
-    implicitHeight: 150
+    implicitHeight: root.theme.lockFlyoutPanelHeight
 
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
@@ -30,7 +31,7 @@ PanelWindow {
 
     mask: Region {}
 
-    function refreshState() {
+    function refreshState(): void {
         readDelay.restart();
     }
 
@@ -45,8 +46,7 @@ PanelWindow {
     Timer {
         id: readDelay
 
-        interval: 10
-        repeat: false
+        interval: root.stateReadDelay
 
         onTriggered: {
             if (!stateReader.running)
@@ -57,37 +57,41 @@ PanelWindow {
     Process {
         id: stateReader
 
-        running: false
         command: ["hyprctl", "devices", "-j"]
 
         stdout: StdioCollector {
+            id: stateOutput
+
             onStreamFinished: {
                 let devices;
 
                 try {
-                    devices = JSON.parse(text);
+                    devices = JSON.parse(stateOutput.text);
                 } catch (error) {
+                    console.warn(`NumLockFlyout: invalid hyprctl output: ${error}`);
                     return;
                 }
 
-                const keyboards = devices.keyboards || [];
-                let mainKeyboard = null;
+                const keyboards = Array.isArray(devices.keyboards) ? devices.keyboards : [];
+                const mainKeyboard = keyboards.find(keyboard => keyboard.main);
 
-                for (const keyboard of keyboards) {
-                    if (keyboard.main) {
-                        mainKeyboard = keyboard;
-                        break;
-                    }
-                }
-
-                if (!mainKeyboard) {
+                if (!mainKeyboard)
                     return;
-                }
 
                 root.numLockEnabled = mainKeyboard.numLock === true;
-
                 root.opened = true;
                 hideTimer.restart();
+            }
+        }
+
+        stderr: StdioCollector {
+            id: stateError
+
+            onStreamFinished: {
+                const message = stateError.text.trim();
+
+                if (message)
+                    console.warn(`NumLockFlyout: ${message}`);
             }
         }
     }
@@ -95,8 +99,7 @@ PanelWindow {
     Timer {
         id: hideTimer
 
-        interval: 850
-        repeat: false
+        interval: root.displayDuration
 
         onTriggered: root.opened = false
     }
@@ -107,20 +110,20 @@ PanelWindow {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        width: 120
-        height: 120
+        width: root.theme.lockFlyoutSize
+        height: root.theme.lockFlyoutSize
 
-        radius: 20
-        color: root.theme.palette2
+        radius: root.theme.lockFlyoutRadius
+        color: root.theme.lockFlyoutBg
 
-        opacity: root.opened ? 0.9 : 0
+        opacity: root.opened ? root.theme.lockFlyoutOpacity : 0
 
         transform: Translate {
-            y: root.opened ? 0 : 16
+            y: root.opened ? 0 : root.theme.lockFlyoutHiddenOffset
 
             Behavior on y {
                 NumberAnimation {
-                    duration: 250
+                    duration: root.theme.animationDuration
                     easing.type: Easing.OutCubic
                 }
             }
@@ -128,7 +131,7 @@ PanelWindow {
 
         Behavior on opacity {
             NumberAnimation {
-                duration: 250
+                duration: root.theme.animationDuration
                 easing.type: Easing.OutCubic
             }
         }
@@ -136,10 +139,10 @@ PanelWindow {
         Image {
             anchors.centerIn: parent
 
-            width: 100
-            height: 100
+            width: root.theme.lockFlyoutIconSize
+            height: width
 
-            source: Quickshell.shellDir + "/assets/" + (!root.numLockEnabled ? "numUnlocked.png" : "numLocked.png")
+            source: Quickshell.shellDir + "/assets/" + (root.numLockEnabled ? "numLocked.png" : "numUnlocked.png")
 
             fillMode: Image.PreserveAspectFit
             smooth: true

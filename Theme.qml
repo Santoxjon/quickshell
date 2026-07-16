@@ -100,4 +100,13 @@ QtObject {
     readonly property int volumeFlyoutBarWidth: 245
     readonly property int volumeFlyoutBarRadius: 3
     readonly property int volumeFlyoutDisplayDuration: 1000
+
+    // Keyboard lock flyouts
+    readonly property int lockFlyoutBottomMargin: 100
+    readonly property int lockFlyoutPanelHeight: 150
+    readonly property int lockFlyoutSize: 120
+    readonly property int lockFlyoutRadius: 20
+    readonly property real lockFlyoutOpacity: 0.9
+    readonly property int lockFlyoutHiddenOffset: 16
+    readonly property int lockFlyoutIconSize: 100
 }
