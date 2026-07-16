@@ -8,8 +8,6 @@ Row {
     signal audioHovered
     signal audioUnhovered
 
-    spacing: 0
-
     AppIndicator {
         theme: root.theme
     }
@@ -64,8 +62,5 @@ Row {
     ShutdownModule {
         theme: root.theme
     }
-
-    function closeAudioDrawer() {
-        root.audioUnhovered();
-    }
 }
+
