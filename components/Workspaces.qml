@@ -6,15 +6,7 @@ Row {
 
     required property var theme
     readonly property int alwaysVisibleWorkspaceCount: 4
-    readonly property var workspaceLabels: [
-        "",
-        "1: kitty",
-        "2: firefox",
-        "3: spotify",
-        "4: code",
-        "5: discord",
-        "6: steam"
-    ]
+    readonly property var workspaceLabels: ["", "1: kitty", "2: firefox", "3: spotify", "4: code", "5: discord", "6: steam"]
 
     function labelFor(workspaceId: int): string {
         const label = root.workspaceLabels[workspaceId];

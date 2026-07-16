@@ -25,15 +25,12 @@ PopupWindow {
         if (root.notification.expireTimeout === 0)
             return -1;
 
-        return root.notification.expireTimeout > 0
-            ? root.notification.expireTimeout
-            : root.defaultTimeout;
+        return root.notification.expireTimeout > 0 ? root.notification.expireTimeout : root.defaultTimeout;
     }
 
     anchor.window: root.anchorWindow
     anchor.rect.x: root.anchorWindow.width - root.implicitWidth - root.theme.notificationScreenMargin
-    anchor.rect.y: root.theme.notificationTopOffset
-        + root.popupIndex * (root.implicitHeight + root.theme.notificationGap)
+    anchor.rect.y: root.theme.notificationTopOffset + root.popupIndex * (root.implicitHeight + root.theme.notificationGap)
 
     visible: root.notification !== null && !root.notification.dismissed
 
@@ -54,9 +51,7 @@ PopupWindow {
 
     TapHandler {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        cursorShape: root.notification && root.notification.actions.length > 0
-            ? Qt.PointingHandCursor
-            : Qt.ArrowCursor
+        cursorShape: root.notification && root.notification.actions.length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
 
         onTapped: function (eventPoint, button) {
             if (button === Qt.RightButton) {
@@ -128,9 +123,7 @@ PopupWindow {
         }
 
         transform: Translate {
-            x: root.entering || root.closing
-                ? root.implicitWidth + root.theme.notificationHiddenOffset
-                : 0
+            x: root.entering || root.closing ? root.implicitWidth + root.theme.notificationHiddenOffset : 0
 
             Behavior on x {
                 NumberAnimation {

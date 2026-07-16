@@ -98,8 +98,7 @@ PanelWindow {
                 let changedState = null;
 
                 for (const path in currentStates) {
-                    if (root.previousLedStates[path] !== undefined
-                            && root.previousLedStates[path] !== currentStates[path]) {
+                    if (root.previousLedStates[path] !== undefined && root.previousLedStates[path] !== currentStates[path]) {
                         changedState = currentStates[path];
                         break;
                     }

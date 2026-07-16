@@ -63,4 +63,3 @@ Row {
         theme: root.theme
     }
 }
-
