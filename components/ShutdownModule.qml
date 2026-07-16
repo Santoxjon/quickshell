@@ -1,27 +1,23 @@
 import QtQuick
-import Quickshell.Io
 
 Item {
     id: root
 
     required property var theme
 
-    property string shutdown: ""
+    readonly property string icon: ""
 
     implicitWidth: label.implicitWidth
     implicitHeight: label.implicitHeight
 
+    // Display-only placeholder until shutdown behavior is implemented.
     ModuleText {
         id: label
 
         theme: root.theme
-        text: root.shutdown
-        color: theme.shutdownButton
+        text: root.icon
+        color: root.theme.shutdownButton
     }
 
-    MouseArea {
-        onClicked: {
-            // ! TODO
-        }
-    }
+    // TODO: Implement shutdown behavior when clicked.
 }
