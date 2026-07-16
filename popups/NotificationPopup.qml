@@ -1,4 +1,5 @@
-// popups/NotificationPopup.qml
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -15,41 +16,47 @@ PopupWindow {
     property bool autoClosing: false
     property bool entering: true
 
-    anchor.window: anchorWindow
-    anchor.rect.x: anchorWindow.width - implicitWidth - 12
-    anchor.rect.y: 40 + popupIndex * (implicitHeight + 10)
-
-    visible: root.notification !== null && !root.notification.dismissed
-
-    implicitWidth: 360
-    implicitHeight: box.implicitHeight
-
-    color: "transparent"
-
-    function timeoutMs() {
+    readonly property int defaultTimeout: 10000
+    readonly property int dismissDelay: root.theme.animationDuration + 20
+    readonly property int effectiveTimeout: {
         if (!root.notification)
-            return 10000;
+            return root.defaultTimeout;
 
         if (root.notification.expireTimeout === 0)
             return -1;
 
-        if (root.notification.expireTimeout > 0)
-            return root.notification.expireTimeout;
-
-        return 10000;
+        return root.notification.expireTimeout > 0
+            ? root.notification.expireTimeout
+            : root.defaultTimeout;
     }
 
-    function closePopup(autoClose) {
+    anchor.window: root.anchorWindow
+    anchor.rect.x: root.anchorWindow.width - root.implicitWidth - root.theme.notificationScreenMargin
+    anchor.rect.y: root.theme.notificationTopOffset
+        + root.popupIndex * (root.implicitHeight + root.theme.notificationGap)
+
+    visible: root.notification !== null && !root.notification.dismissed
+
+    implicitWidth: root.theme.notificationWidth
+    implicitHeight: box.implicitHeight
+
+    color: "transparent"
+
+    function closePopup(autoClose: bool): void {
         if (root.closing || !root.notification)
             return;
 
         root.autoClosing = autoClose;
         root.closing = true;
         closeTimer.stop();
+        dismissAfterAnimation.restart();
     }
 
     TapHandler {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
+        cursorShape: root.notification && root.notification.actions.length > 0
+            ? Qt.PointingHandCursor
+            : Qt.ArrowCursor
 
         onTapped: function (eventPoint, button) {
             if (button === Qt.RightButton) {
@@ -74,17 +81,17 @@ PopupWindow {
 
     Timer {
         id: closeTimer
-        interval: root.timeoutMs() > 0 ? root.timeoutMs() : 1
-        running: root.notification !== null && !root.closing && root.timeoutMs() > 0
-        repeat: false
+
+        interval: root.effectiveTimeout > 0 ? root.effectiveTimeout : 1
+        running: root.notification !== null && !root.closing && root.effectiveTimeout > 0
 
         onTriggered: root.closePopup(true)
     }
 
     Timer {
         id: dismissAfterAnimation
-        interval: 240
-        repeat: false
+
+        interval: root.dismissDelay
 
         onTriggered: {
             if (!root.notification)
@@ -97,38 +104,37 @@ PopupWindow {
         }
     }
 
-    onClosingChanged: {
-        if (root.closing)
-            dismissAfterAnimation.start();
-    }
-
     Rectangle {
         id: box
+
         anchors.fill: parent
-        radius: 5
+
+        radius: root.theme.cornerRadius
         color: root.theme.bg
-        border.width: 2
+        border.width: root.theme.borderWidth
         border.color: root.theme.border
 
-        implicitHeight: content.implicitHeight + 16
+        implicitHeight: content.implicitHeight + 2 * root.theme.notificationContentPadding
 
         Rectangle {
             anchors.left: box.left
             anchors.top: box.top
             anchors.bottom: box.bottom
 
-            width: 7
+            width: root.theme.notificationAccentWidth
             color: root.theme.border
-            topLeftRadius: 5
-            bottomLeftRadius: 5
+            topLeftRadius: root.theme.cornerRadius
+            bottomLeftRadius: root.theme.cornerRadius
         }
 
         transform: Translate {
-            x: root.entering ? root.implicitWidth + 40 : (root.closing ? root.implicitWidth + 40 : 0)
+            x: root.entering || root.closing
+                ? root.implicitWidth + root.theme.notificationHiddenOffset
+                : 0
 
             Behavior on x {
                 NumberAnimation {
-                    duration: 220
+                    duration: root.theme.animationDuration
                     easing.type: Easing.OutCubic
                 }
             }
@@ -136,25 +142,47 @@ PopupWindow {
 
         RowLayout {
             id: content
+
             anchors.fill: parent
-            anchors.margins: 8
-            anchors.leftMargin: 15
-            spacing: 16
+            anchors.margins: root.theme.notificationContentPadding
+            anchors.leftMargin: root.theme.notificationContentLeftPadding
 
-            implicitHeight: Math.max(icon.visible ? icon.Layout.preferredHeight : 0, textColumn.implicitHeight)
+            spacing: root.theme.notificationContentSpacing
 
-            Image {
-                id: icon
+            implicitHeight: Math.max(iconContainer.Layout.preferredHeight, textColumn.implicitHeight)
 
-                Layout.preferredWidth: 96
-                Layout.preferredHeight: 96
+            Item {
+                id: iconContainer
+
+                Layout.preferredWidth: root.theme.notificationIconSize
+                Layout.preferredHeight: root.theme.notificationIconSize
                 Layout.alignment: Qt.AlignVCenter
 
-                source: root.notification ? (root.notification.image || root.notification.appIcon) : ""
+                Image {
+                    id: notificationIcon
 
-                fillMode: Image.PreserveAspectFit
-                smooth: true
-                visible: source !== ""
+                    anchors.fill: parent
+
+                    source: root.notification ? (root.notification.image || root.notification.appIcon) : ""
+
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    visible: source.toString() !== ""
+                }
+
+                Text {
+                    anchors.fill: parent
+
+                    visible: !notificationIcon.visible || notificationIcon.status === Image.Error
+
+                    text: ""
+                    color: root.theme.fg
+                    font.family: root.theme.fontName
+                    font.pixelSize: root.theme.notificationIconSize
+                    textFormat: Text.PlainText
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
 
             ColumnLayout {
@@ -162,14 +190,17 @@ PopupWindow {
 
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignVCenter
-                spacing: 4
+                spacing: root.theme.notificationTextSpacing
 
                 Text {
                     Layout.fillWidth: true
                     text: root.notification ? root.notification.summary.trim() : ""
                     color: root.theme.fg
-                    font.pixelSize: 15
+                    font.family: root.theme.fontName
+                    font.pixelSize: root.theme.smallFontSize
                     font.bold: true
+                    textFormat: Text.PlainText
+                    wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignLeft
                 }
 
@@ -178,7 +209,8 @@ PopupWindow {
                     text: root.notification ? root.notification.body.replace(/\s+$/, "") : ""
                     color: root.theme.fg
                     wrapMode: Text.WordWrap
-                    font.pixelSize: 13
+                    font.family: root.theme.fontName
+                    font.pixelSize: root.theme.captionFontSize
                     horizontalAlignment: Text.AlignLeft
                 }
 
@@ -186,20 +218,26 @@ PopupWindow {
                     model: root.notification ? root.notification.actions : []
 
                     delegate: Text {
+                        id: actionLabel
+
                         required property var modelData
 
                         Layout.fillWidth: true
-                        text: modelData.text
+                        text: actionLabel.modelData.text
                         color: root.theme.fg
-                        font.pixelSize: 13
+                        font.family: root.theme.fontName
+                        font.pixelSize: root.theme.captionFontSize
                         font.bold: true
+                        textFormat: Text.PlainText
+                        wrapMode: Text.WordWrap
                         horizontalAlignment: Text.AlignLeft
 
                         TapHandler {
                             acceptedButtons: Qt.LeftButton
+                            cursorShape: Qt.PointingHandCursor
 
                             onTapped: {
-                                modelData.invoke();
+                                actionLabel.modelData.invoke();
                                 root.closePopup(false);
                             }
                         }

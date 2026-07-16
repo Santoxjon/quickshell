@@ -109,4 +109,17 @@ QtObject {
     readonly property real lockFlyoutOpacity: 0.9
     readonly property int lockFlyoutHiddenOffset: 16
     readonly property int lockFlyoutIconSize: 100
+
+    // Notifications
+    readonly property int notificationScreenMargin: 12
+    readonly property int notificationTopOffset: 40
+    readonly property int notificationGap: 10
+    readonly property int notificationWidth: 360
+    readonly property int notificationAccentWidth: 7
+    readonly property int notificationContentPadding: 8
+    readonly property int notificationContentLeftPadding: 15
+    readonly property int notificationContentSpacing: 16
+    readonly property int notificationTextSpacing: 4
+    readonly property int notificationIconSize: 96
+    readonly property int notificationHiddenOffset: 40
 }
