@@ -33,6 +33,7 @@ QtObject {
     readonly property int borderWidth: 2
     readonly property int accentBorderWidth: 3
     readonly property int cornerRadius: 5
+    readonly property int moduleSpacing: 8
 
     // Motion
     readonly property int fastAnimationDuration: 80

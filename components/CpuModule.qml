@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
 import "../popups"
 
@@ -17,19 +16,15 @@ Item {
 
     Row {
         id: content
-        spacing: 8
+        spacing: root.theme.moduleSpacing
 
         ModuleText {
-            id: icon
-
             theme: root.theme
             text: ""
             color: root.theme.rightModuleIcon
         }
 
         ModuleText {
-            id: usageLabel
-
             theme: root.theme
             text: root.usage
             color: root.theme.fg
@@ -40,6 +35,7 @@ Item {
         id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
+        acceptedButtons: Qt.NoButton
     }
 
     CpuTooltipPopup {
@@ -49,17 +45,14 @@ Item {
         text: root.tooltipText
     }
 
-    Process {
+    JsonLineProcess {
+        logName: "CPU usage"
         running: true
-        command: ["bash", Quickshell.shellDir + "/scripts/get-cpu-usage.sh"]
+        command: [Quickshell.shellDir + "/scripts/get-cpu-usage.sh"]
 
-        stdout: SplitParser {
-            onRead: data => {
-                const cpu = JSON.parse(data);
-
-                root.usage = cpu.usage;
-                root.tooltipText = cpu.tooltipText;
-            }
+        onJsonReceived: cpu => {
+            root.usage = typeof cpu.usage === "string" ? cpu.usage : "--%";
+            root.tooltipText = typeof cpu.tooltipText === "string" ? cpu.tooltipText : "CPU";
         }
     }
 }
