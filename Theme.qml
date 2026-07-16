@@ -67,16 +67,27 @@ QtObject {
     readonly property int audioModuleIconWidth: 23
     readonly property int audioModuleValueWidth: 42
 
+    // Drawers
+    readonly property int drawerLip: 18
+    readonly property int drawerBorderInset: 1
+    readonly property int drawerContentPadding: 12
+    readonly property int drawerCloseDelay: animationDuration + 10
+
     // Audio drawer
     readonly property int audioDrawerWidth: 320
-    readonly property int audioDrawerDefaultHeight: 300
-    readonly property int audioDrawerLip: 18
-    readonly property int audioDrawerBorderInset: 1
     readonly property int audioDrawerRightMargin: 30
-    readonly property int audioDrawerContentPadding: 12
     readonly property int audioDrawerContentSpacing: 10
     readonly property int audioOutputRowHeight: 26
-    readonly property int audioDrawerCloseDelay: animationDuration + 10
+
+    // CPU drawer
+    readonly property color cpuDrawerGridSeparator: palette2
+    readonly property color cpuDrawerCoreName: palette5
+    readonly property int cpuDrawerFontSize: smallFontSize
+    readonly property int cpuDrawerCellWidth: 124
+    readonly property int cpuDrawerCellHeight: 26
+    readonly property int cpuDrawerColumnSpacing: 8
+    readonly property int cpuDrawerRowSpacing: 10
+    readonly property int cpuDrawerLabelSpacing: 6
 
     // Volume slider
     readonly property color sliderBg: palette3

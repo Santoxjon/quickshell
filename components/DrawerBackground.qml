@@ -6,10 +6,8 @@ Item {
     required property var theme
     property bool opened: false
 
-    readonly property int lip: root.theme.audioDrawerLip
+    readonly property int lip: root.theme.drawerLip
     readonly property bool fullyOpened: root.opened && root.height === root.implicitHeight
-
-    implicitHeight: root.theme.audioDrawerDefaultHeight
 
     anchors.top: parent.top
     anchors.left: parent.left
@@ -25,21 +23,21 @@ Item {
         }
     }
 
-    AudioDrawerShape {
+    DrawerShape {
         anchors.fill: parent
         lip: root.lip
         cornerRadius: root.theme.cornerRadius
         fillColor: root.theme.bg
     }
 
-    AudioDrawerShape {
+    DrawerShape {
         anchors.fill: parent
         lip: root.lip
         cornerRadius: root.theme.cornerRadius
         fillColor: "transparent"
         strokeColor: root.theme.topBarBottomBorder
         strokeWidth: root.theme.accentBorderWidth
-        bottomInset: root.theme.audioDrawerBorderInset
+        bottomInset: root.theme.drawerBorderInset
         opacity: root.fullyOpened ? 1 : 0
 
         Behavior on opacity {

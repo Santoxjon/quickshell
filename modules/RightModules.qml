@@ -6,9 +6,14 @@ Row {
     id: root
 
     required property var theme
+    required property var cpuUsage
+
+    readonly property Item cpuAnchorItem: cpuModule
 
     signal audioHovered
     signal audioUnhovered
+    signal cpuHovered
+    signal cpuUnhovered
 
     AppIndicator {
         theme: root.theme
@@ -19,7 +24,13 @@ Row {
     }
 
     CpuModule {
+        id: cpuModule
+
         theme: root.theme
+        cpuUsage: root.cpuUsage
+
+        onHovered: root.cpuHovered()
+        onUnhovered: root.cpuUnhovered()
     }
 
     Separator {

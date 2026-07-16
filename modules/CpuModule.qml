@@ -1,17 +1,15 @@
 import QtQuick
-import Quickshell
 
 import qs.components
-import qs.popups
-import qs.services
 
 Item {
     id: root
 
     required property var theme
+    required property var cpuUsage
 
-    property string usage: "--%"
-    property string tooltipText: "CPU"
+    signal hovered
+    signal unhovered
 
     implicitWidth: content.implicitWidth
     implicitHeight: content.implicitHeight
@@ -28,33 +26,17 @@ Item {
 
         ModuleText {
             theme: root.theme
-            text: root.usage
+            text: root.cpuUsage.usageText
             color: root.theme.fg
         }
     }
 
     MouseArea {
-        id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.NoButton
-    }
 
-    CpuTooltipPopup {
-        theme: root.theme
-        anchorItem: root
-        isOpen: mouseArea.containsMouse
-        text: root.tooltipText
-    }
-
-    JsonLineProcess {
-        logName: "CPU usage"
-        running: true
-        command: [Quickshell.shellDir + "/scripts/get-cpu-usage.sh"]
-
-        onJsonReceived: cpu => {
-            root.usage = typeof cpu.usage === "string" ? cpu.usage : "--%";
-            root.tooltipText = typeof cpu.tooltipText === "string" ? cpu.tooltipText : "CPU";
-        }
+        onEntered: root.hovered()
+        onExited: root.unhovered()
     }
 }

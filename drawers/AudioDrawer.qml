@@ -23,13 +23,13 @@ PopupWindow {
     visible: root.opened || root.animating
     color: "transparent"
     implicitWidth: root.theme.audioDrawerWidth
-    implicitHeight: content.implicitHeight + root.theme.audioDrawerContentPadding * 2
+    implicitHeight: content.implicitHeight + root.theme.drawerContentPadding * 2
 
     anchor.window: root.anchorWindow
     anchor.rect.x: root.anchorWindow.width - root.implicitWidth - root.theme.audioDrawerRightMargin
     anchor.rect.y: root.theme.barHeight - root.theme.accentBorderWidth
 
-    AudioDrawerBackground {
+    DrawerBackground {
         id: box
         theme: root.theme
         opened: root.opened
@@ -39,10 +39,10 @@ PopupWindow {
             id: content
 
             anchors.fill: parent
-            anchors.leftMargin: root.theme.audioDrawerContentPadding + box.lip
-            anchors.rightMargin: root.theme.audioDrawerContentPadding + box.lip
-            anchors.topMargin: root.theme.audioDrawerContentPadding
-            anchors.bottomMargin: root.theme.audioDrawerContentPadding
+            anchors.leftMargin: root.theme.drawerContentPadding + box.lip
+            anchors.rightMargin: root.theme.drawerContentPadding + box.lip
+            anchors.topMargin: root.theme.drawerContentPadding
+            anchors.bottomMargin: root.theme.drawerContentPadding
             spacing: root.theme.audioDrawerContentSpacing
             opacity: box.height / root.implicitHeight
 
@@ -120,7 +120,7 @@ PopupWindow {
     Timer {
         id: closeTimer
 
-        interval: root.theme.audioDrawerCloseDelay
+        interval: root.theme.drawerCloseDelay
 
         onTriggered: root.animating = false
     }

@@ -164,7 +164,7 @@ The audio drawer lists PipeWire sinks whose names begin with `alsa_output.`. Cha
 
 The scripts under [`scripts/`](scripts/) continuously emit one line at a time for their QML modules:
 
-- `get-cpu-usage.sh` emits CPU usage and per-core tooltip data as JSON.
+- `get-cpu-usage.sh` emits total and per-core CPU usage as JSON for the CPU module and its hover drawer.
 - `get-memory-usage.sh` emits percentage and `used / total` RAM. Total RAM is rounded upward so a machine with approximately 31.3 GiB usable memory displays `32GB`.
 - `get-cpu-temp.sh` prefers CPU package temperatures and supports common Intel, AMD, and CPU thermal-driver labels.
 - `get-network-ip.sh` displays the IPv4 address of the default-route interface.

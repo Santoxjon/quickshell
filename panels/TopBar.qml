@@ -8,10 +8,15 @@ PanelWindow {
     id: root
 
     required property var theme
+    required property var cpuUsage
     property bool activeBorder: false
+
+    readonly property Item cpuAnchorItem: rightModules.cpuAnchorItem
 
     signal audioHovered
     signal audioUnhovered
+    signal cpuHovered
+    signal cpuUnhovered
 
     anchors {
         top: true
@@ -61,12 +66,17 @@ PanelWindow {
                 Layout.fillHeight: true
 
                 RightModules {
+                    id: rightModules
+
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     theme: root.theme
+                    cpuUsage: root.cpuUsage
 
                     onAudioHovered: root.audioHovered()
                     onAudioUnhovered: root.audioUnhovered()
+                    onCpuHovered: root.cpuHovered()
+                    onCpuUnhovered: root.cpuUnhovered()
                 }
             }
         }

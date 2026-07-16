@@ -13,15 +13,15 @@ fi
 while true; do
     if ! sample=$(mpstat -P ALL 1 1); then
         printf 'cpu-usage: failed to read processor statistics\n' >&2
-        printf '{"usage":"--%%","tooltipText":"CPU data unavailable"}\n'
+        printf '{"totalUsage":null,"cores":[]}\n'
         sleep "$retry_interval"
         continue
     fi
 
     awk '
         BEGIN {
-            main = "--%"
-            tooltip = ""
+            total_usage = "null"
+            cores = ""
         }
 
         /^Average:/ {
@@ -33,16 +33,18 @@ while true; do
             else if (usage > 100)
                 usage = 100
 
-            if ($2 == "all")
-                main = sprintf("%02d%%", usage)
+            if ($2 == "all") {
+                total_usage = usage
+            } else if ($2 ~ /^[0-9]+$/) {
+                if (cores != "")
+                    cores = cores ","
 
-            if ($2 ~ /^[0-9]+$/)
-                tooltip = tooltip sprintf("Core %2d: %3d%%\\n", $2, usage)
+                cores = cores sprintf("{\"id\":%d,\"usage\":%d}", $2, usage)
+            }
         }
 
         END {
-            sub(/\\n$/, "", tooltip)
-            printf "{\"usage\":\"%s\",\"tooltipText\":\"%s\"}\n", main, tooltip
+            printf "{\"totalUsage\":%s,\"cores\":[%s]}\n", total_usage, cores
         }
     ' <<< "$sample"
 done
