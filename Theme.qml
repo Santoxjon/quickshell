@@ -60,9 +60,15 @@ QtObject {
     readonly property int audioModuleValueWidth: 42
 
     // Audio drawer
+    readonly property int audioDrawerWidth: 320
     readonly property int audioDrawerDefaultHeight: 300
     readonly property int audioDrawerLip: 18
     readonly property int audioDrawerBorderInset: 1
+    readonly property int audioDrawerRightMargin: 30
+    readonly property int audioDrawerContentPadding: 12
+    readonly property int audioDrawerContentSpacing: 10
+    readonly property int audioOutputRowHeight: 26
+    readonly property int audioDrawerCloseDelay: animationDuration + 10
 
     // Volume slider
     readonly property color sliderBg: palette3

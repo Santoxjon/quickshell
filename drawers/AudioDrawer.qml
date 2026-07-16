@@ -1,6 +1,6 @@
-// drawers/AudioDrawer.qml
+pragma ComponentBehavior: Bound
+
 import QtQuick
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Services.Pipewire
 
@@ -13,16 +13,20 @@ PopupWindow {
     required property var anchorWindow
     property bool opened: false
     property bool animating: false
+    readonly property var outputSinks: Pipewire.nodes.values.filter(node => node.isSink && node.name && node.name.startsWith("alsa_output."))
     readonly property bool fullyOpened: box.fullyOpened
 
-    visible: opened || animating
-    color: "transparent"
-    implicitWidth: 320
-    implicitHeight: Pipewire.nodes.values.filter(node => node.isSink && node.name && node.name.startsWith("alsa_output.")).length * 36 + 12 + 10 + 26 + 28 + 15 + 40
+    signal entered
+    signal exited
 
-    anchor.window: anchorWindow
-    anchor.rect.x: anchorWindow.width - implicitWidth - 30
-    anchor.rect.y: root.theme.barHeight - 3
+    visible: root.opened || root.animating
+    color: "transparent"
+    implicitWidth: root.theme.audioDrawerWidth
+    implicitHeight: content.implicitHeight + root.theme.audioDrawerContentPadding * 2
+
+    anchor.window: root.anchorWindow
+    anchor.rect.x: root.anchorWindow.width - root.implicitWidth - root.theme.audioDrawerRightMargin
+    anchor.rect.y: root.theme.barHeight - root.theme.accentBorderWidth
 
     AudioDrawerBackground {
         id: box
@@ -31,56 +35,64 @@ PopupWindow {
         implicitHeight: root.implicitHeight
 
         Column {
+            id: content
+
             anchors.fill: parent
-            anchors.leftMargin: 12 + box.lip
-            anchors.rightMargin: 12 + box.lip
-            anchors.topMargin: 12
-            anchors.bottomMargin: 12
-            spacing: 10
+            anchors.leftMargin: root.theme.audioDrawerContentPadding + box.lip
+            anchors.rightMargin: root.theme.audioDrawerContentPadding + box.lip
+            anchors.topMargin: root.theme.audioDrawerContentPadding
+            anchors.bottomMargin: root.theme.audioDrawerContentPadding
+            spacing: root.theme.audioDrawerContentSpacing
             opacity: box.height / root.implicitHeight
 
             ModuleText {
                 theme: root.theme
-                text: "Salidas"
+                text: "Outputs"
                 font.pixelSize: root.theme.titleSize
                 font.italic: true
             }
 
             Repeater {
-                model: Pipewire.nodes.values.filter(node => node.isSink && node.name && node.name.startsWith("alsa_output."))
+                model: root.outputSinks
 
                 delegate: Item {
+                    id: outputRow
+
+                    required property var modelData
+                    readonly property string outputName: outputRow.modelData.description || outputRow.modelData.name
+                    readonly property bool isCurrent: outputRow.modelData === Pipewire.defaultAudioSink
+                    readonly property bool isHS80: outputRow.outputName.includes("HS80")
+                    readonly property string hs80Info: outputRow.isHS80 && hs80Status.batteryText ? ` ${hs80Status.icon}` : ""
+
                     width: parent.width
-                    height: 26
-                    readonly property bool isCurrent: modelData === Pipewire.defaultAudioSink
-                    readonly property bool isHS80: modelData.description && modelData.description.includes("HS80")
-                    readonly property string hs80Info: isHS80 && hs80Status.batteryText ? ` ${hs80Status.icon}` : ""
+                    height: root.theme.audioOutputRowHeight
 
                     ModuleText {
                         anchors.verticalCenter: parent.verticalCenter
                         theme: root.theme
 
-                        text: `${isCurrent ? "●" : "○"} ${modelData.description}${hs80Info}`
-                        color: isCurrent ? root.theme.audioOutputActiveText : root.theme.audioOutputText
+                        text: `${outputRow.isCurrent ? "●" : "○"} ${outputRow.outputName}${outputRow.hs80Info}`
+                        color: outputRow.isCurrent ? root.theme.audioOutputActiveText : root.theme.audioOutputText
+                    }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: Pipewire.preferredDefaultAudioSink = modelData
-                            cursorShape: Qt.PointingHandCursor
-                        }
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+
+                        onClicked: Pipewire.preferredDefaultAudioSink = outputRow.modelData
                     }
                 }
             }
 
             Rectangle {
                 width: parent.width
-                height: 2
+                height: root.theme.borderWidth
                 color: root.theme.border
             }
 
             ModuleText {
                 theme: root.theme
-                text: "Volumen " + Math.round(volumeSlider.value) + "%"
+                text: "Volume " + Math.round(volumeSlider.value) + "%"
                 anchors.horizontalCenter: parent.horizontalCenter
             }
 
@@ -96,8 +108,9 @@ PopupWindow {
     }
 
     onOpenedChanged: {
-        if (opened) {
-            animating = true;
+        if (root.opened) {
+            closeTimer.stop();
+            root.animating = true;
         } else {
             closeTimer.restart();
         }
@@ -105,20 +118,18 @@ PopupWindow {
 
     Timer {
         id: closeTimer
-        interval: 230
-        repeat: false
+
+        interval: root.theme.audioDrawerCloseDelay
+
         onTriggered: root.animating = false
     }
 
     PwObjectTracker {
-        objects: Pipewire.nodes.values
+        objects: root.outputSinks
     }
 
     Hs80Status {
         id: hs80Status
         active: root.opened
     }
-
-    signal entered
-    signal exited
 }
