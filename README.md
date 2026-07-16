@@ -143,7 +143,7 @@ The shortcut names must match the `GlobalShortcut` and `IpcHandler` names in the
 Edit [`Theme.qml`](Theme.qml) to change the palette, font, sizes, and bar height. If a different Nerd Font is installed, update:
 
 ```qml
-property string fontName: "JetBrainsMono Nerd Font"
+readonly property string fontName: "JetBrainsMono Nerd Font"
 ```
 
 Missing or incorrect Nerd Font configuration usually appears as empty squares in place of icons.
@@ -181,8 +181,8 @@ The audio drawer can display battery and charging information for a Corsair HS80
 Rebuild the binaries from source when using another architecture or after changing their code:
 
 ```bash
-cc -O2 -Wall -Wextra -o scripts/hs80-battery-daemon scripts/hs80-battery-daemon.c
-cc -O2 -Wall -Wextra -o scripts/hs80-charging-daemon scripts/hs80-charging-daemon.c
+cc -std=c17 -O2 -Wall -Wextra -Wpedantic -o scripts/hs80-battery-daemon scripts/hs80-battery-daemon.c
+cc -std=c17 -O2 -Wall -Wextra -Wpedantic -o scripts/hs80-charging-daemon scripts/hs80-charging-daemon.c
 ```
 
 The daemons need permission to read `/dev/hidraw*` and write under `/run`. One option is to run them as system services. Create `/etc/systemd/system/hs80-battery-daemon.service`:

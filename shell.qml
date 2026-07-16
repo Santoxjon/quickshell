@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
@@ -13,7 +15,7 @@ ShellRoot {
     property bool audioModuleHovered: false
     property bool audioDrawerHovered: false
 
-    function updateAudioDrawer() {
+    function updateAudioDrawer(): void {
         audioDrawer.opened = root.audioModuleHovered || root.audioDrawerHovered;
     }
 

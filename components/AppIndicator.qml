@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -43,7 +45,7 @@ Row {
             onRead: line => root.updateActiveApplications(line)
         }
         stderr: SplitParser {
-            onRead: line => console.log("app-indicator error:", line)
+            onRead: line => console.warn(`Application indicator: ${line}`)
         }
     }
 }
