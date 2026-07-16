@@ -1,21 +1,17 @@
 import QtQuick
 
-Text {
+ModuleText {
     id: root
 
-    required property var theme
+    property date currentTime: new Date()
 
-    color: theme.fg
-    font.family: theme.fontName
-    font.pixelSize: theme.fontSize
-    font.weight: Font.ExtraBold
-
-    text: Qt.formatDateTime(new Date(), "HH:mm")
+    text: Qt.formatDateTime(root.currentTime, "HH:mm")
 
     Timer {
         interval: 1000
         running: true
         repeat: true
-        onTriggered: root.text = Qt.formatDateTime(new Date(), "HH:mm")
+
+        onTriggered: root.currentTime = new Date()
     }
 }
