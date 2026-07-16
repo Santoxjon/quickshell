@@ -10,8 +10,12 @@ import "./drawers"
 ShellRoot {
     id: root
 
-    property bool audioHover: false
-    property bool drawerHover: false
+    property bool audioModuleHovered: false
+    property bool audioDrawerHovered: false
+
+    function updateAudioDrawer() {
+        audioDrawer.opened = root.audioModuleHovered || root.audioDrawerHovered;
+    }
 
     Theme {
         id: appTheme
@@ -24,14 +28,14 @@ ShellRoot {
         activeBorder: audioDrawer.fullyOpened
 
         onAudioHovered: {
-            audioHover = true;
-            closeAudioTimer.stop();
-            updateAudioDrawer();
+            root.audioModuleHovered = true;
+            audioDrawerCloseTimer.stop();
+            root.updateAudioDrawer();
         }
 
         onAudioUnhovered: {
-            audioHover = false;
-            closeAudioTimer.restart();
+            root.audioModuleHovered = false;
+            audioDrawerCloseTimer.restart();
         }
     }
 
@@ -41,23 +45,23 @@ ShellRoot {
         anchorWindow: topBar
 
         onEntered: {
-            drawerHover = true;
-            closeAudioTimer.stop();
-            updateAudioDrawer();
+            root.audioDrawerHovered = true;
+            audioDrawerCloseTimer.stop();
+            root.updateAudioDrawer();
         }
 
         onExited: {
-            drawerHover = false;
-            closeAudioTimer.restart();
+            root.audioDrawerHovered = false;
+            audioDrawerCloseTimer.restart();
         }
     }
 
     Timer {
-        id: closeAudioTimer
+        id: audioDrawerCloseTimer
         interval: 1
         repeat: false
 
-        onTriggered: updateAudioDrawer()
+        onTriggered: root.updateAudioDrawer()
     }
 
     NotificationServer {
@@ -68,10 +72,8 @@ ShellRoot {
         bodyImagesSupported: true
         actionIconsSupported: true
 
-        onNotification: function (n) {
-            console.log("NOTIFICATION:", n.appName, n.appIcon, n.image, n.desktopEntry, n.summary, n.body);
-
-            n.tracked = true;
+        onNotification: function (notification) {
+            notification.tracked = true;
         }
     }
 
@@ -91,10 +93,6 @@ ShellRoot {
                 popupIndex: delegateRoot.index
             }
         }
-    }
-
-    function updateAudioDrawer() {
-        audioDrawer.opened = audioHover || drawerHover;
     }
 
     VolumeFlyout {
