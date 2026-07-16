@@ -64,4 +64,8 @@ QtObject {
     readonly property color sliderEmptyBg: palette1
     readonly property color sliderHandleRectangleBg: palette0
     readonly property color sliderHandleRectangleBorder: palette3
+    readonly property int audioSliderHeight: 28
+    readonly property int audioSliderTrackHeight: 15
+    readonly property int audioSliderHandleWidth: 20
+    readonly property int audioSliderHandleHeight: 25
 }

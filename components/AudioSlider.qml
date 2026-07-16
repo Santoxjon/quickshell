@@ -1,55 +1,57 @@
-// components/AudioSlider.qml
 import QtQuick
 import QtQuick.Controls
 import Quickshell.Services.Pipewire
 
 Slider {
-    id: volumeSlider
+    id: root
 
     required property var theme
+    readonly property var sink: Pipewire.defaultAudioSink
+    readonly property var audio: root.sink ? root.sink.audio : null
+
     width: parent.width
-    height: 28
+    height: root.theme.audioSliderHeight
     from: 0
     to: 100
     stepSize: 1
-
-    readonly property var sink: Pipewire.defaultAudioSink
-    readonly property var audio: sink ? sink.audio : null
-    value: audio ? Math.round(audio.volume * 100) : 0
+    value: root.audio ? Math.round(root.audio.volume * 100) : 0
 
     onMoved: {
-        if (audio)
-            audio.volume = value / 100;
+        if (root.audio)
+            root.audio.volume = root.value / 100;
     }
 
     background: Rectangle {
-        x: 0
-        y: volumeSlider.height / 2 - height / 2
-        width: volumeSlider.width
-        height: 15
-        radius: 5
-        color: volumeSlider.theme.sliderEmptyBg
+        y: (root.height - height) / 2
+        width: root.width
+        height: root.theme.audioSliderTrackHeight
+        radius: root.theme.cornerRadius
+        color: root.theme.sliderEmptyBg
 
         Rectangle {
-            width: volumeSlider.visualPosition * parent.width
+            width: root.visualPosition * parent.width
             height: parent.height
             radius: parent.radius
-            color: volumeSlider.theme.sliderBg
+            color: root.theme.sliderBg
         }
     }
 
     handle: Rectangle {
-        width: 20
-        height: 25
-        border.width: 2
-        border.color: volumeSlider.theme.sliderHandleRectangleBorder
-        radius: 5
-        x: volumeSlider.visualPosition * (volumeSlider.width - width)
-        y: volumeSlider.height / 2 - height / 2
-        color: volumeSlider.theme.sliderHandleRectangleBg
+        width: root.theme.audioSliderHandleWidth
+        height: root.theme.audioSliderHandleHeight
+        border.width: root.theme.borderWidth
+        border.color: root.theme.sliderHandleRectangleBorder
+        radius: root.theme.cornerRadius
+        x: root.visualPosition * (root.width - width)
+        y: (root.height - height) / 2
+        color: root.theme.sliderHandleRectangleBg
     }
 
     HoverHandler {
         cursorShape: Qt.PointingHandCursor
+    }
+
+    PwObjectTracker {
+        objects: root.sink ? [root.sink] : []
     }
 }
