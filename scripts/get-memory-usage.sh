@@ -8,8 +8,10 @@ while true; do
       used = total - available
       percent = int(used * 100 / total)
       used_gb = used / 1024 / 1024
+      total_gb = total / 1024 / 1024
+      total_gb = int(total_gb) + (total_gb > int(total_gb))
 
-      printf "{\"percentUsage\":\"%d%%\",\"gbUsage\":\"%.1fGB\"}\n", percent, used_gb
+      printf "{\"percentUsage\":\"%d%%\",\"gbUsage\":\"%.1fGB / %dGB\"}\n", percent, used_gb, total_gb
     }
     ' /proc/meminfo
     

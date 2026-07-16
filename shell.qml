@@ -35,13 +35,10 @@ ShellRoot {
         }
     }
 
-    property string activeDrawer: ""
-
     AudioDrawer {
         id: audioDrawer
         theme: appTheme
         anchorWindow: topBar
-        opened: root.activeDrawer === "audio"
 
         onEntered: {
             drawerHover = true;

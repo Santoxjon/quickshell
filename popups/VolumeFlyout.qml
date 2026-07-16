@@ -120,11 +120,7 @@ PanelWindow {
 
                 text: ""
                 color: root.theme.rightModuleIcon
-
-                font {
-                    family: root.theme.fontFamily
-                    pixelSize: 25
-                }
+                font.pixelSize: root.theme.titleSize
             }
 
             Rectangle {

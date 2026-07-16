@@ -26,7 +26,7 @@ Row {
         sourceSize.width: 17
         sourceSize.height: 17
         fillMode: Image.PreserveAspectFit
-        source: "/home/jon/.config/quickshell/assets/discord.png"
+        source: Quickshell.shellDir + "/assets/discord.png"
         anchors.verticalCenter: parent.verticalCenter
     }
 
@@ -38,7 +38,7 @@ Row {
         sourceSize.height: 17
         fillMode: Image.PreserveAspectFit
         anchors.verticalCenter: parent.verticalCenter
-        source: "/home/jon/.config/quickshell/assets/steam.png"
+        source: Quickshell.shellDir + "/assets/steam.png"
     }
 
     Process {
