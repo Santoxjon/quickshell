@@ -42,6 +42,10 @@ QtObject {
     readonly property color topBarBottomBorder: palette4
     readonly property int topBarContentRightMargin: 5
 
+    // Workspaces
+    readonly property int workspaceHorizontalPadding: 12
+    readonly property int workspaceVerticalPadding: 4
+
     // Audio outputs
     readonly property color audioOutputActiveText: palette4
     readonly property color audioOutputText: palette3
