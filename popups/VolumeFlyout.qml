@@ -1,4 +1,3 @@
-// popups/VolumeFlyout.qml
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
@@ -8,15 +7,13 @@ PanelWindow {
     id: root
 
     required property var theme
-
-    readonly property var sink: Pipewire.defaultAudioSink
-    readonly property var audio: sink ? sink.audio : null
-
-    readonly property int volume: audio ? Math.round(audio.volume * 100) : 0
-
     property bool opened: false
+    readonly property var sink: Pipewire.defaultAudioSink
+    readonly property var audio: root.sink ? root.sink.audio : null
+    readonly property int volume: root.audio ? Math.round(root.audio.volume * 100) : 0
+    readonly property int volumeStep: 5
 
-    visible: opened || flyout.opacity > 0
+    visible: root.opened || flyout.opacity > 0
 
     anchors {
         left: true
@@ -24,9 +21,7 @@ PanelWindow {
         bottom: true
     }
 
-    margins.bottom: 0
-
-    implicitHeight: 84
+    implicitHeight: root.theme.volumeFlyoutPanelHeight
 
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
@@ -34,14 +29,13 @@ PanelWindow {
 
     mask: Region {}
 
-    function changeVolume(delta) {
-        if (!audio)
+    function changeVolume(delta: int): void {
+        if (!root.audio)
             return;
 
-        const current = Math.round(audio.volume * 100);
-        const next = Math.max(0, Math.min(100, current + delta));
+        const nextVolume = Math.max(0, Math.min(100, root.volume + delta));
 
-        audio.volume = next / 100;
+        root.audio.volume = nextVolume / 100;
 
         root.opened = true;
         hideTimer.restart();
@@ -53,23 +47,22 @@ PanelWindow {
 
     GlobalShortcut {
         name: "volumeUp"
-        description: "Subir volumen"
+        description: "Raise volume"
 
-        onPressed: root.changeVolume(5)
+        onPressed: root.changeVolume(root.volumeStep)
     }
 
     GlobalShortcut {
         name: "volumeDown"
-        description: "Bajar volumen"
+        description: "Lower volume"
 
-        onPressed: root.changeVolume(-5)
+        onPressed: root.changeVolume(-root.volumeStep)
     }
 
     Timer {
         id: hideTimer
 
-        interval: 1000
-        repeat: false
+        interval: root.theme.volumeFlyoutDisplayDuration
 
         onTriggered: root.opened = false
     }
@@ -80,20 +73,20 @@ PanelWindow {
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
 
-        width: 325
-        height: 40
+        width: root.theme.volumeFlyoutWidth
+        height: root.theme.volumeFlyoutHeight
 
-        radius: 30
+        radius: root.theme.volumeFlyoutRadius
         color: root.theme.bg
 
-        opacity: root.opened ? 0.9 : 0
+        opacity: root.opened ? root.theme.volumeFlyoutOpacity : 0
 
         transform: Translate {
-            y: root.opened ? 0 : 16
+            y: root.opened ? 0 : root.theme.volumeFlyoutHiddenOffset
 
             Behavior on y {
                 NumberAnimation {
-                    duration: 220
+                    duration: root.theme.animationDuration
                     easing.type: Easing.OutCubic
                 }
             }
@@ -101,7 +94,7 @@ PanelWindow {
 
         Behavior on opacity {
             NumberAnimation {
-                duration: 220
+                duration: root.theme.animationDuration
                 easing.type: Easing.OutCubic
             }
         }
@@ -109,11 +102,11 @@ PanelWindow {
         Row {
             anchors {
                 fill: parent
-                leftMargin: 18
-                rightMargin: 18
+                leftMargin: root.theme.volumeFlyoutHorizontalPadding
+                rightMargin: root.theme.volumeFlyoutHorizontalPadding
             }
 
-            spacing: 14
+            spacing: root.theme.volumeFlyoutSpacing
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
@@ -124,14 +117,12 @@ PanelWindow {
             }
 
             Rectangle {
-                id: volumeBar
-
                 anchors.verticalCenter: parent.verticalCenter
 
-                width: 245
-                height: 15
+                width: root.theme.volumeFlyoutBarWidth
+                height: root.theme.audioSliderTrackHeight
 
-                radius: 3
+                radius: root.theme.volumeFlyoutBarRadius
                 color: root.theme.sliderEmptyBg
                 clip: true
 
@@ -144,7 +135,7 @@ PanelWindow {
 
                     Behavior on width {
                         NumberAnimation {
-                            duration: 80
+                            duration: root.theme.fastAnimationDuration
                             easing.type: Easing.OutCubic
                         }
                     }

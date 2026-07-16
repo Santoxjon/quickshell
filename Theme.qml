@@ -87,4 +87,17 @@ QtObject {
     readonly property int audioSliderTrackHeight: 15
     readonly property int audioSliderHandleWidth: 20
     readonly property int audioSliderHandleHeight: 25
+
+    // Volume flyout
+    readonly property int volumeFlyoutPanelHeight: 84
+    readonly property int volumeFlyoutWidth: 325
+    readonly property int volumeFlyoutHeight: 40
+    readonly property int volumeFlyoutRadius: 30
+    readonly property real volumeFlyoutOpacity: 0.9
+    readonly property int volumeFlyoutHiddenOffset: 16
+    readonly property int volumeFlyoutHorizontalPadding: 18
+    readonly property int volumeFlyoutSpacing: 14
+    readonly property int volumeFlyoutBarWidth: 245
+    readonly property int volumeFlyoutBarRadius: 3
+    readonly property int volumeFlyoutDisplayDuration: 1000
 }
