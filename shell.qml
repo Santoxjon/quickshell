@@ -156,4 +156,8 @@ ShellRoot {
     CapsLockFlyout {
         theme: appTheme
     }
+
+    AppLauncher {
+        theme: appTheme
+    }
 }

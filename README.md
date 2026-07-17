@@ -13,6 +13,7 @@ A personal [Quickshell](https://quickshell.org/) configuration for Hyprland. It 
 - PipeWire volume display, scroll control, output selection, and volume flyout
 - Desktop notification server with actions
 - Caps Lock and Num Lock flyouts
+- Animated application launcher with mouse and keyboard navigation
 - Optional Corsair HS80 battery and charging status
 
 The shutdown icon is intentionally a placeholder and does not perform an action yet.
@@ -82,7 +83,7 @@ If the event handler already starts other desktop services, add only `hl.exec_cm
 
 ## Hyprland key bindings
 
-The volume and lock-key flyouts need matching bindings in `hyprland.lua`:
+The flyouts and application launcher need matching bindings in `hyprland.lua`:
 
 ```lua
 hl.bind(
@@ -120,6 +121,22 @@ hl.bind(
     description = "Show Caps Lock state",
   }
 )
+
+hl.bind(
+  mainMod .. " + D",
+  hl.dsp.global("quickshell:launcher"),
+  {
+    description = "Open the application launcher",
+  }
+)
+
+hl.bind(
+  mainMod .. " + R",
+  hl.dsp.global("quickshell:launcher"),
+  {
+    description = "Open the application launcher",
+  }
+)
 ```
 
 Muting is not handled by the volume flyout, but it can be bound separately through PipeWire:
@@ -135,6 +152,7 @@ hl.bind(
 ```
 
 The shortcut names must match the `GlobalShortcut` and `IpcHandler` names in the QML files.
+The launcher can also be opened manually with `qs ipc call launcher open`.
 
 ## Configuration
 

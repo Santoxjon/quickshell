@@ -41,6 +41,40 @@ QtObject {
     readonly property int fastAnimationDuration: 80
     readonly property int animationDuration: 220
 
+    // Application launcher
+    readonly property color launcherVeilColor: palette3
+    readonly property real launcherVeilOpacity: 0.78
+    readonly property color launcherInputBg: "#ffffff"
+    readonly property color launcherInputFg: palette5
+    readonly property color launcherInputPlaceholder: palette3
+    readonly property color launcherInputShadow: palette4
+    readonly property real launcherInputShadowOpacity: 0.72
+    readonly property real launcherInputShadowBlur: 0.7
+    readonly property int launcherInputShadowOffset: 7
+    readonly property color launcherResultBg: palette1
+    readonly property color launcherResultSelectedBg: palette0
+    readonly property real launcherResultOpacity: 0.9
+    readonly property int launcherWidth: 800
+    readonly property int launcherInputHeight: 82
+    readonly property int launcherInputHorizontalPadding: 26
+    readonly property int launcherInputFontSize: 32
+    readonly property int launcherInputRadius: 12
+    readonly property int launcherInputActiveOffset: 250
+    readonly property int launcherResultsTopMargin: 24
+    readonly property int launcherResultsRevealOffset: 18
+    readonly property int launcherResultHeight: 72
+    readonly property int launcherResultSpacing: 10
+    readonly property int launcherResultHorizontalPadding: 18
+    readonly property int launcherResultIconSize: 42
+    readonly property int launcherResultTextSpacing: 16
+    readonly property int launcherResultRadius: 8
+    readonly property int launcherMaxResults: 6
+    readonly property color launcherScrollbar: palette6
+    readonly property int launcherScrollbarWidth: 10
+    readonly property int launcherScrollbarGap: 10
+    readonly property int launcherScrollStep: 30
+    readonly property real launcherClosedScale: 0.96
+
     // Tooltips
     readonly property int tooltipOffset: 6
     readonly property int tooltipHorizontalPadding: 12
