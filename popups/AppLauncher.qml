@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
@@ -6,6 +8,8 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Widgets
 
+import qs.services
+
 PanelWindow {
     id: root
 
@@ -13,11 +17,11 @@ PanelWindow {
 
     property bool opened: false
     property int selectedIndex: -1
-    property var pendingApplication: null
+    property DesktopEntry pendingApplication: null
     property real presentationProgress: root.opened ? 1 : 0
 
-    readonly property string query: searchInput.text.trim().toLocaleLowerCase()
-    readonly property bool hasQuery: root.query.length > 0
+    readonly property string query: applicationsModel.query
+    readonly property bool hasQuery: applicationsModel.hasQuery
 
     visible: root.opened || root.presentationProgress > 0
 
@@ -95,56 +99,6 @@ PanelWindow {
         root.opened = false;
     }
 
-    function applicationText(application): string {
-        const keywords = application.keywords ? application.keywords.join(" ") : "";
-
-        return [application.name || "", application.genericName || "", application.comment || "", application.id || "", keywords].join(" ").toLocaleLowerCase();
-    }
-
-    function applicationMatches(application, searchText: string): bool {
-        const searchableText = root.applicationText(application);
-        const terms = searchText.split(/\s+/);
-
-        return terms.every(term => searchableText.includes(term));
-    }
-
-    function applicationScore(application, searchText: string): int {
-        const name = (application.name || "").toLocaleLowerCase();
-        const genericName = (application.genericName || "").toLocaleLowerCase();
-        const keywords = application.keywords ? application.keywords.join(" ").toLocaleLowerCase() : "";
-
-        if (name === searchText)
-            return 0;
-        if (name.startsWith(searchText))
-            return 1;
-        if (name.split(/\s+/).some(word => word.startsWith(searchText)))
-            return 2;
-        if (genericName.startsWith(searchText))
-            return 3;
-        if (keywords.split(/\s+/).some(word => word.startsWith(searchText)))
-            return 4;
-        if (name.includes(searchText))
-            return 5;
-
-        return 6;
-    }
-
-    function filteredApplications(): var {
-        if (!root.hasQuery)
-            return [];
-
-        const applications = DesktopEntries.applications.values.filter(application => root.applicationMatches(application, root.query));
-
-        return [...applications].sort((left, right) => {
-            const scoreDifference = root.applicationScore(left, root.query) - root.applicationScore(right, root.query);
-
-            if (scoreDifference !== 0)
-                return scoreDifference;
-
-            return left.name.localeCompare(right.name);
-        });
-    }
-
     function moveSelection(direction: int): void {
         const resultCount = resultsView.count;
         const wasAtEnd = resultsView.atYEnd;
@@ -178,14 +132,14 @@ PanelWindow {
             return;
 
         const minimumY = resultsView.originY;
-        const maximumY = Math.max(minimumY, minimumY + resultsView.contentHeight - resultsView.height);
+        const maximumY = resultsContainer.maximumContentY;
         const targetY = resultsView.contentY - Math.sign(wheelDelta) * root.theme.launcherScrollStep;
 
         resultsView.cancelFlick();
         resultsView.contentY = Math.max(minimumY, Math.min(maximumY, targetY));
     }
 
-    function activateApplication(application): void {
+    function activateApplication(application: DesktopEntry): void {
         if (!root.opened || !application)
             return;
 
@@ -221,12 +175,20 @@ PanelWindow {
         }
     }
 
-    ScriptModel {
+    Timer {
+        id: selectionUpdateTimer
+
+        interval: 0
+
+        onTriggered: root.selectFirstResult()
+    }
+
+    ApplicationSearchModel {
         id: applicationsModel
 
-        values: root.filteredApplications()
+        searchText: searchInput.text
 
-        onValuesChanged: Qt.callLater(() => root.selectFirstResult())
+        onValuesChanged: selectionUpdateTimer.restart()
     }
 
     Rectangle {
@@ -351,7 +313,7 @@ PanelWindow {
                 onTextChanged: {
                     root.selectedIndex = -1;
                     resultsView.positionViewAtBeginning();
-                    Qt.callLater(() => root.selectFirstResult());
+                    selectionUpdateTimer.restart();
                 }
 
                 Keys.onPressed: event => {
@@ -387,13 +349,14 @@ PanelWindow {
             readonly property real remainingScrollDistance: Math.max(0, resultsContainer.maximumContentY - resultsView.contentY)
             readonly property real bottomOverflowOpacity: resultsContainer.hasOverflow ? Math.min(1, resultsContainer.remainingScrollDistance / root.theme.launcherBottomShadowFadeDistance) : 0
             readonly property real scrollbarTargetReserve: root.theme.launcherScrollbarWidth + root.theme.launcherScrollbarGap
+            readonly property int visibleResultCount: Math.min(applicationsModel.values.length, root.theme.launcherMaxResults)
             property real scrollbarReserve: 0
 
             anchors.top: searchBox.bottom
             anchors.topMargin: root.theme.launcherResultsTopMargin
 
             width: parent.width
-            height: applicationsModel.values.length > 0 ? Math.min(applicationsModel.values.length, root.theme.launcherMaxResults) * root.theme.launcherResultHeight + (Math.min(applicationsModel.values.length, root.theme.launcherMaxResults) - 1) * root.theme.launcherResultSpacing : root.theme.launcherResultHeight
+            height: resultsContainer.visibleResultCount > 0 ? resultsContainer.visibleResultCount * root.theme.launcherResultHeight + (resultsContainer.visibleResultCount - 1) * root.theme.launcherResultSpacing : root.theme.launcherResultHeight
             color: "transparent"
             bottomLeftRadius: root.theme.launcherResultRadius
             bottomRightRadius: root.theme.launcherResultRadius
@@ -526,70 +489,185 @@ PanelWindow {
                     }
                 }
 
-            ListView {
-                id: resultsView
+                ListView {
+                    id: resultsView
 
-                anchors.fill: parent
+                    anchors.fill: parent
 
-                visible: count > 0
+                    visible: count > 0
 
-                model: applicationsModel
-                currentIndex: root.selectedIndex
-                spacing: root.theme.launcherResultSpacing
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
+                    model: applicationsModel
+                    currentIndex: root.selectedIndex
+                    spacing: root.theme.launcherResultSpacing
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
 
-                ScrollBar.vertical: ScrollBar {
-                    id: resultsScrollBar
+                    ScrollBar.vertical: ScrollBar {
+                        id: resultsScrollBar
 
-                    parent: resultsContainer
+                        parent: resultsContainer
 
-                    anchors {
-                        top: parent.top
-                        right: parent.right
-                        bottom: parent.bottom
+                        anchors {
+                            top: parent.top
+                            right: parent.right
+                            bottom: parent.bottom
+                        }
+
+                        active: true
+                        interactive: true
+                        enabled: resultsContainer.hasOverflow
+                        policy: ScrollBar.AlwaysOn
+                        z: 3
+                        width: root.theme.launcherScrollbarWidth
+                        padding: 0
+                        opacity: 0
+                        scale: 0.7
+
+                        background: Item {}
+
+                        contentItem: Rectangle {
+                            implicitWidth: root.theme.launcherScrollbarWidth
+                            radius: width / 2
+                            color: root.theme.launcherScrollbar
+                        }
                     }
 
-                    active: true
-                    interactive: true
-                    enabled: resultsContainer.hasOverflow
-                    policy: ScrollBar.AlwaysOn
-                    z: 3
-                    width: root.theme.launcherScrollbarWidth
-                    padding: 0
-                    opacity: 0
-                    scale: 0.7
+                    delegate: Rectangle {
+                        id: resultRow
 
-                    background: Item {}
+                        required property DesktopEntry modelData
+                        required property int index
 
-                    contentItem: Rectangle {
-                        implicitWidth: root.theme.launcherScrollbarWidth
-                        radius: width / 2
-                        color: root.theme.launcherScrollbar
+                        readonly property bool selected: root.selectedIndex === resultRow.index
+                        readonly property bool hovered: resultMouseArea.containsMouse
+
+                        width: ListView.view.width
+                        height: root.theme.launcherResultHeight
+
+                        radius: root.theme.launcherResultRadius
+                        color: resultRow.selected ? root.theme.launcherResultSelectedBg : root.theme.launcherResultBg
+                        opacity: resultRow.hovered || resultRow.selected ? 1 : root.theme.launcherResultOpacity
+                        border.width: root.theme.thinBorderWidth
+                        border.color: root.theme.border
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: root.theme.fastAnimationDuration
+                            }
+                        }
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: root.theme.fastAnimationDuration
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        IconImage {
+                            id: applicationIcon
+
+                            anchors.left: parent.left
+                            anchors.leftMargin: root.theme.launcherResultHorizontalPadding
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            width: root.theme.launcherResultIconSize
+                            height: width
+
+                            source: Quickshell.iconPath(resultRow.modelData.icon, true)
+                            asynchronous: true
+                            mipmap: true
+                        }
+
+                        Text {
+                            anchors.centerIn: applicationIcon
+                            visible: applicationIcon.status === Image.Error || applicationIcon.status === Image.Null
+
+                            text: ""
+                            color: root.theme.fg
+                            font.family: root.theme.fontName
+                            font.pixelSize: root.theme.launcherResultIconSize - 8
+                        }
+
+                        Column {
+                            anchors.left: applicationIcon.right
+                            anchors.leftMargin: root.theme.launcherResultTextSpacing
+                            anchors.right: parent.right
+                            anchors.rightMargin: root.theme.launcherResultHorizontalPadding
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            spacing: 1
+
+                            Text {
+                                width: parent.width
+
+                                text: resultRow.modelData.name
+                                color: root.theme.fg
+                                elide: Text.ElideRight
+                                font.family: root.theme.fontName
+                                font.pixelSize: root.theme.titleSize
+                                font.weight: Font.Bold
+                            }
+
+                            Text {
+                                width: parent.width
+
+                                visible: text.length > 0
+                                text: resultRow.modelData.genericName || resultRow.modelData.comment || ""
+                                color: root.theme.palette3
+                                elide: Text.ElideRight
+                                font.family: root.theme.fontName
+                                font.pixelSize: root.theme.captionFontSize
+                            }
+                        }
+
+                        MouseArea {
+                            id: resultMouseArea
+
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+
+                            onClicked: root.activateApplication(resultRow.modelData)
+                            onEntered: root.selectedIndex = resultRow.index
+
+                            onWheel: wheel => {
+                                const wheelDelta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.pixelDelta.y;
+
+                                root.scrollResults(wheelDelta);
+                                wheel.accepted = true;
+                            }
+                        }
                     }
                 }
 
-                delegate: Rectangle {
-                    id: resultRow
+                Rectangle {
+                    id: bottomOverflowIndicator
 
-                    required property var modelData
-                    required property int index
+                    anchors {
+                        right: parent.right
+                        bottom: parent.bottom
+                        left: parent.left
+                    }
 
-                    readonly property bool selected: root.selectedIndex === resultRow.index
-                    readonly property bool hovered: resultMouseArea.containsMouse
+                    z: 2
+                    height: root.theme.launcherBottomShadowHeight
+                    color: "transparent"
+                    opacity: resultsContainer.bottomOverflowOpacity
 
-                    width: ListView.view.width
-                    height: root.theme.launcherResultHeight
+                    gradient: Gradient {
+                        GradientStop {
+                            position: 0
+                            color: "transparent"
+                        }
 
-                    radius: root.theme.launcherResultRadius
-                    color: resultRow.selected ? root.theme.launcherResultSelectedBg : root.theme.launcherResultBg
-                    opacity: resultRow.hovered || resultRow.selected ? 1 : root.theme.launcherResultOpacity
-                    border.width: root.theme.thinBorderWidth
-                    border.color: root.theme.border
+                        GradientStop {
+                            position: 0.2
+                            color: Qt.rgba(root.theme.launcherBottomShadowColor.r, root.theme.launcherBottomShadowColor.g, root.theme.launcherBottomShadowColor.b, root.theme.launcherBottomShadowOpacity * 0.2)
+                        }
 
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: root.theme.fastAnimationDuration
+                        GradientStop {
+                            position: 1
+                            color: Qt.rgba(root.theme.launcherBottomShadowColor.r, root.theme.launcherBottomShadowColor.g, root.theme.launcherBottomShadowColor.b, root.theme.launcherBottomShadowOpacity)
                         }
                     }
 
@@ -599,123 +677,7 @@ PanelWindow {
                             easing.type: Easing.OutCubic
                         }
                     }
-
-                    IconImage {
-                        id: applicationIcon
-
-                        anchors.left: parent.left
-                        anchors.leftMargin: root.theme.launcherResultHorizontalPadding
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        width: root.theme.launcherResultIconSize
-                        height: width
-
-                        source: Quickshell.iconPath(resultRow.modelData.icon, true)
-                        asynchronous: true
-                        mipmap: true
-                    }
-
-                    Text {
-                        anchors.centerIn: applicationIcon
-                        visible: applicationIcon.status === Image.Error || applicationIcon.status === Image.Null
-
-                        text: ""
-                        color: root.theme.fg
-                        font.family: root.theme.fontName
-                        font.pixelSize: root.theme.launcherResultIconSize - 8
-                    }
-
-                    Column {
-                        anchors.left: applicationIcon.right
-                        anchors.leftMargin: root.theme.launcherResultTextSpacing
-                        anchors.right: parent.right
-                        anchors.rightMargin: root.theme.launcherResultHorizontalPadding
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        spacing: 1
-
-                        Text {
-                            width: parent.width
-
-                            text: resultRow.modelData.name
-                            color: root.theme.fg
-                            elide: Text.ElideRight
-                            font.family: root.theme.fontName
-                            font.pixelSize: root.theme.titleSize
-                            font.weight: Font.Bold
-                        }
-
-                        Text {
-                            width: parent.width
-
-                            visible: text.length > 0
-                            text: resultRow.modelData.genericName || resultRow.modelData.comment || ""
-                            color: root.theme.palette3
-                            elide: Text.ElideRight
-                            font.family: root.theme.fontName
-                            font.pixelSize: root.theme.captionFontSize
-                        }
-                    }
-
-                    MouseArea {
-                        id: resultMouseArea
-
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-
-                        onClicked: root.activateApplication(resultRow.modelData)
-                        onEntered: root.selectedIndex = resultRow.index
-
-                        onWheel: wheel => {
-                            const wheelDelta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.pixelDelta.y;
-
-                            root.scrollResults(wheelDelta);
-                            wheel.accepted = true;
-                        }
-                    }
                 }
-            }
-
-            Rectangle {
-                id: bottomOverflowIndicator
-
-                anchors {
-                    right: parent.right
-                    bottom: parent.bottom
-                    left: parent.left
-                }
-
-                z: 2
-                height: root.theme.launcherBottomShadowHeight
-                color: "transparent"
-                opacity: resultsContainer.bottomOverflowOpacity
-
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0
-                        color: "transparent"
-                    }
-
-                    GradientStop {
-                        position: 0.2
-                        color: Qt.rgba(root.theme.launcherBottomShadowColor.r, root.theme.launcherBottomShadowColor.g, root.theme.launcherBottomShadowColor.b, root.theme.launcherBottomShadowOpacity * 0.2)
-                    }
-
-                    GradientStop {
-                        position: 1
-                        color: Qt.rgba(root.theme.launcherBottomShadowColor.r, root.theme.launcherBottomShadowColor.g, root.theme.launcherBottomShadowColor.b, root.theme.launcherBottomShadowOpacity)
-                    }
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: root.theme.fastAnimationDuration
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-            }
             }
 
             Rectangle {
