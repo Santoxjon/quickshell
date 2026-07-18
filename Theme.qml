@@ -73,6 +73,10 @@ QtObject {
     readonly property int launcherScrollbarWidth: 10
     readonly property int launcherScrollbarGap: 10
     readonly property int launcherScrollStep: 30
+    readonly property int launcherBottomShadowHeight: 70
+    readonly property int launcherBottomShadowFadeDistance: launcherResultHeight + launcherResultSpacing
+    readonly property color launcherBottomShadowColor: palette6
+    readonly property real launcherBottomShadowOpacity: 0.75
     readonly property real launcherClosedScale: 0.96
 
     // Tooltips

@@ -98,13 +98,7 @@ PanelWindow {
     function applicationText(application): string {
         const keywords = application.keywords ? application.keywords.join(" ") : "";
 
-        return [
-            application.name || "",
-            application.genericName || "",
-            application.comment || "",
-            application.id || "",
-            keywords
-        ].join(" ").toLocaleLowerCase();
+        return [application.name || "", application.genericName || "", application.comment || "", application.id || "", keywords].join(" ").toLocaleLowerCase();
     }
 
     function applicationMatches(application, searchText: string): bool {
@@ -153,6 +147,7 @@ PanelWindow {
 
     function moveSelection(direction: int): void {
         const resultCount = resultsView.count;
+        const wasAtEnd = resultsView.atYEnd;
 
         if (resultCount === 0)
             return;
@@ -163,6 +158,12 @@ PanelWindow {
             root.selectedIndex = (root.selectedIndex + direction + resultCount) % resultCount;
 
         resultsView.positionViewAtIndex(root.selectedIndex, ListView.Contain);
+
+        if (direction < 0 && wasAtEnd) {
+            const rowStep = root.theme.launcherResultHeight + root.theme.launcherResultSpacing;
+
+            resultsView.contentY = Math.max(resultsView.originY, resultsView.contentY - rowStep);
+        }
     }
 
     function selectFirstResult(): void {
@@ -378,20 +379,92 @@ PanelWindow {
             }
         }
 
-        Item {
+        Rectangle {
             id: resultsContainer
+
+            readonly property bool hasOverflow: resultsView.contentHeight > resultsView.height + 1
+            readonly property real maximumContentY: Math.max(resultsView.originY, resultsView.originY + resultsView.contentHeight - resultsView.height)
+            readonly property real remainingScrollDistance: Math.max(0, resultsContainer.maximumContentY - resultsView.contentY)
+            readonly property real bottomOverflowOpacity: resultsContainer.hasOverflow ? Math.min(1, resultsContainer.remainingScrollDistance / root.theme.launcherBottomShadowFadeDistance) : 0
+            readonly property real scrollbarTargetReserve: root.theme.launcherScrollbarWidth + root.theme.launcherScrollbarGap
+            property real scrollbarReserve: 0
 
             anchors.top: searchBox.bottom
             anchors.topMargin: root.theme.launcherResultsTopMargin
 
             width: parent.width
-            height: applicationsModel.values.length > 0
-                ? Math.min(applicationsModel.values.length, root.theme.launcherMaxResults) * root.theme.launcherResultHeight
-                    + (Math.min(applicationsModel.values.length, root.theme.launcherMaxResults) - 1) * root.theme.launcherResultSpacing
-                : root.theme.launcherResultHeight
+            height: applicationsModel.values.length > 0 ? Math.min(applicationsModel.values.length, root.theme.launcherMaxResults) * root.theme.launcherResultHeight + (Math.min(applicationsModel.values.length, root.theme.launcherMaxResults) - 1) * root.theme.launcherResultSpacing : root.theme.launcherResultHeight
+            color: "transparent"
+            bottomLeftRadius: root.theme.launcherResultRadius
+            bottomRightRadius: root.theme.launcherResultRadius
 
             visible: root.hasQuery || opacity > 0
             opacity: root.hasQuery ? root.presentationProgress : 0
+            state: resultsContainer.hasOverflow ? "scrollbarShown" : "scrollbarHidden"
+
+            states: [
+                State {
+                    name: "scrollbarHidden"
+
+                    PropertyChanges {
+                        target: resultsContainer
+                        scrollbarReserve: 0
+                    }
+
+                    PropertyChanges {
+                        target: resultsScrollBar
+                        opacity: 0
+                        scale: 0.7
+                    }
+                },
+                State {
+                    name: "scrollbarShown"
+
+                    PropertyChanges {
+                        target: resultsContainer
+                        scrollbarReserve: resultsContainer.scrollbarTargetReserve
+                    }
+
+                    PropertyChanges {
+                        target: resultsScrollBar
+                        opacity: 1
+                        scale: 1
+                    }
+                }
+            ]
+
+            transitions: [
+                Transition {
+                    from: "scrollbarHidden"
+                    to: "scrollbarShown"
+                    reversible: true
+
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: resultsContainer
+                            property: "scrollbarReserve"
+                            duration: root.theme.animationDuration
+                            easing.type: Easing.OutCubic
+                        }
+
+                        ParallelAnimation {
+                            NumberAnimation {
+                                target: resultsScrollBar
+                                property: "opacity"
+                                duration: root.theme.animationDuration
+                                easing.type: Easing.OutCubic
+                            }
+
+                            NumberAnimation {
+                                target: resultsScrollBar
+                                property: "scale"
+                                duration: root.theme.animationDuration
+                                easing.type: Easing.OutBack
+                            }
+                        }
+                    }
+                }
+            ]
 
             transform: Translate {
                 y: root.hasQuery ? 0 : -root.theme.launcherResultsRevealOffset
@@ -420,16 +493,43 @@ PanelWindow {
                 }
             }
 
-            ListView {
-                id: resultsView
+            Rectangle {
+                id: resultsViewport
 
                 anchors {
                     top: parent.top
                     right: parent.right
                     bottom: parent.bottom
                     left: parent.left
-                    rightMargin: root.theme.launcherScrollbarWidth + root.theme.launcherScrollbarGap
+                    rightMargin: resultsContainer.scrollbarReserve
                 }
+
+                color: "transparent"
+                bottomLeftRadius: root.theme.launcherResultRadius
+                bottomRightRadius: root.theme.launcherResultRadius
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    autoPaddingEnabled: false
+                    maskEnabled: true
+                    maskSource: ShaderEffectSource {
+                        width: resultsViewport.width
+                        height: resultsViewport.height
+
+                        sourceItem: Rectangle {
+                            width: resultsViewport.width
+                            height: resultsViewport.height
+                            color: "white"
+                            bottomLeftRadius: root.theme.launcherResultRadius
+                            bottomRightRadius: root.theme.launcherResultRadius
+                            layer.enabled: true
+                        }
+                    }
+                }
+
+            ListView {
+                id: resultsView
+
+                anchors.fill: parent
 
                 visible: count > 0
 
@@ -440,6 +540,8 @@ PanelWindow {
                 boundsBehavior: Flickable.StopAtBounds
 
                 ScrollBar.vertical: ScrollBar {
+                    id: resultsScrollBar
+
                     parent: resultsContainer
 
                     anchors {
@@ -450,9 +552,13 @@ PanelWindow {
 
                     active: true
                     interactive: true
-                    policy: resultsView.contentHeight > resultsView.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                    enabled: resultsContainer.hasOverflow
+                    policy: ScrollBar.AlwaysOn
+                    z: 3
                     width: root.theme.launcherScrollbarWidth
                     padding: 0
+                    opacity: 0
+                    scale: 0.7
 
                     background: Item {}
 
@@ -572,7 +678,57 @@ PanelWindow {
             }
 
             Rectangle {
-                anchors.fill: parent
+                id: bottomOverflowIndicator
+
+                anchors {
+                    right: parent.right
+                    bottom: parent.bottom
+                    left: parent.left
+                }
+
+                z: 2
+                height: root.theme.launcherBottomShadowHeight
+                color: "transparent"
+                opacity: resultsContainer.bottomOverflowOpacity
+
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0
+                        color: "transparent"
+                    }
+
+                    GradientStop {
+                        position: 0.2
+                        color: Qt.rgba(root.theme.launcherBottomShadowColor.r, root.theme.launcherBottomShadowColor.g, root.theme.launcherBottomShadowColor.b, root.theme.launcherBottomShadowOpacity * 0.2)
+                    }
+
+                    GradientStop {
+                        position: 1
+                        color: Qt.rgba(root.theme.launcherBottomShadowColor.r, root.theme.launcherBottomShadowColor.g, root.theme.launcherBottomShadowColor.b, root.theme.launcherBottomShadowOpacity)
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: root.theme.fastAnimationDuration
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+            }
+            }
+
+            Rectangle {
+                id: noResultsCard
+
+                anchors {
+                    top: parent.top
+                    right: parent.right
+                    bottom: parent.bottom
+                    left: parent.left
+                    rightMargin: resultsContainer.scrollbarReserve
+                }
+
                 visible: root.hasQuery && resultsView.count === 0
 
                 radius: root.theme.launcherResultRadius
