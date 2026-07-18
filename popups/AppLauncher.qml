@@ -18,10 +18,21 @@ PanelWindow {
     property bool opened: false
     property int selectedIndex: -1
     property DesktopEntry pendingApplication: null
+    property var displayedApplications: []
     property real presentationProgress: root.opened ? 1 : 0
 
     readonly property string query: applicationsModel.query
     readonly property bool hasQuery: applicationsModel.hasQuery
+
+    onHasQueryChanged: {
+        if (root.hasQuery)
+            return;
+
+        root.selectedIndex = -1;
+
+        if (!resultsContainer.visible)
+            root.displayedApplications = [];
+    }
 
     visible: root.opened || root.presentationProgress > 0
 
@@ -121,7 +132,7 @@ PanelWindow {
     }
 
     function selectFirstResult(): void {
-        root.selectedIndex = root.hasQuery && applicationsModel.values.length > 0 ? 0 : -1;
+        root.selectedIndex = root.hasQuery && root.displayedApplications.length > 0 ? 0 : -1;
 
         if (root.selectedIndex === 0)
             resultsView.positionViewAtBeginning();
@@ -188,7 +199,13 @@ PanelWindow {
 
         searchText: searchInput.text
 
-        onValuesChanged: selectionUpdateTimer.restart()
+        onValuesChanged: {
+            if (!root.hasQuery)
+                return;
+
+            root.displayedApplications = [...applicationsModel.values];
+            selectionUpdateTimer.restart();
+        }
     }
 
     Rectangle {
@@ -333,7 +350,7 @@ PanelWindow {
                     case Qt.Key_Return:
                     case Qt.Key_Enter:
                         if (root.selectedIndex >= 0)
-                            root.activateApplication(applicationsModel.values[root.selectedIndex]);
+                            root.activateApplication(root.displayedApplications[root.selectedIndex]);
                         event.accepted = true;
                         break;
                     }
@@ -349,7 +366,7 @@ PanelWindow {
             readonly property real remainingScrollDistance: Math.max(0, resultsContainer.maximumContentY - resultsView.contentY)
             readonly property real bottomOverflowOpacity: resultsContainer.hasOverflow ? Math.min(1, resultsContainer.remainingScrollDistance / root.theme.launcherBottomShadowFadeDistance) : 0
             readonly property real scrollbarTargetReserve: root.theme.launcherScrollbarWidth + root.theme.launcherScrollbarGap
-            readonly property int visibleResultCount: Math.min(applicationsModel.values.length, root.theme.launcherMaxResults)
+            readonly property int visibleResultCount: Math.min(root.displayedApplications.length, root.theme.launcherMaxResults)
             property real scrollbarReserve: 0
 
             anchors.top: searchBox.bottom
@@ -364,6 +381,11 @@ PanelWindow {
             visible: root.hasQuery || opacity > 0
             opacity: root.hasQuery ? root.presentationProgress : 0
             state: resultsContainer.hasOverflow ? "scrollbarShown" : "scrollbarHidden"
+
+            onVisibleChanged: {
+                if (!resultsContainer.visible && !root.hasQuery)
+                    root.displayedApplications = [];
+            }
 
             states: [
                 State {
@@ -401,6 +423,7 @@ PanelWindow {
                     from: "scrollbarHidden"
                     to: "scrollbarShown"
                     reversible: true
+                    enabled: resultsContainer.visible
 
                     SequentialAnimation {
                         NumberAnimation {
@@ -496,7 +519,7 @@ PanelWindow {
 
                     visible: count > 0
 
-                    model: applicationsModel
+                    model: root.displayedApplications
                     currentIndex: root.selectedIndex
                     spacing: root.theme.launcherResultSpacing
                     clip: true
