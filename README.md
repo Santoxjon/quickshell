@@ -196,6 +196,10 @@ The audio drawer can display battery and charging information for a Corsair HS80
 /run/hs80-charging
 ```
 
+Quickshell may start before the daemons have created or populated these files. To avoid leaving the audio drawer with an empty battery value for the rest of the session, [`services/Hs80Status.qml`](services/Hs80Status.qml) retries both reads immediately and then every three seconds until both files contain valid status data. This retry is intentionally independent of whether the audio drawer is open.
+
+When the headset is disconnected, the battery daemon publishes an empty value, so the retry timer continues running to detect a later connection. The timer is a single persistent QML object and completed `FileView.reload()` operations do not accumulate, so this periodic polling has stable memory usage. Once valid battery and charging data have been loaded, the timer stops and normal file-change notifications provide subsequent updates.
+
 Rebuild the binaries from source when using another architecture or after changing their code:
 
 ```bash

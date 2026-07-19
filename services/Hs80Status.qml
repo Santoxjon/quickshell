@@ -10,6 +10,9 @@ Scope {
 
     readonly property string batteryText: batteryFile.loaded ? batteryFile.text().trim() : ""
     readonly property string chargingStatus: chargingFile.loaded ? chargingFile.text().trim() : ""
+    readonly property bool batteryDataValid: /^(?:100|[0-9]{1,2})%$/.test(root.batteryText)
+    readonly property bool chargingDataValid: /^(?:charging|discharging|unknown)$/.test(root.chargingStatus)
+    readonly property bool statusLoaded: root.batteryDataValid && root.chargingDataValid
     readonly property int batteryPercentage: root.parseBatteryPercentage(root.batteryText)
     readonly property bool charging: root.chargingStatus === "charging"
     readonly property int chargingAnimationInterval: 750
@@ -38,12 +41,16 @@ Scope {
         return root.batteryIcons[index];
     }
 
+    function refresh(): void {
+        batteryFile.reload();
+        chargingFile.reload();
+    }
+
     FileView {
         id: batteryFile
 
         path: "/run/hs80-battery"
-        preload: root.active
-        watchChanges: root.active
+        watchChanges: true
         printErrors: false
 
         onFileChanged: batteryFile.reload()
@@ -53,11 +60,19 @@ Scope {
         id: chargingFile
 
         path: "/run/hs80-charging"
-        preload: root.active
-        watchChanges: root.active
+        watchChanges: true
         printErrors: false
 
         onFileChanged: chargingFile.reload()
+    }
+
+    Timer {
+        interval: 3000
+        repeat: true
+        running: !root.statusLoaded
+        triggeredOnStart: true
+
+        onTriggered: root.refresh()
     }
 
     Timer {
