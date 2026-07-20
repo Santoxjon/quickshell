@@ -11,19 +11,24 @@ ScriptModel {
 
     values: root.filteredApplications()
 
+    function normalizeText(value: var): string {
+        return typeof value === "string" ? value.toLocaleLowerCase() : "";
+    }
+
     function createSearchData(application: DesktopEntry): var {
-        const name = application.name.toLocaleLowerCase();
-        const genericName = application.genericName.toLocaleLowerCase();
-        const keywords = application.keywords.join(" ").toLocaleLowerCase();
+        const displayName = application.name || application.id || "Unnamed application";
+        const name = root.normalizeText(displayName);
+        const genericName = root.normalizeText(application.genericName);
+        const keywords = application.keywords ? root.normalizeText(application.keywords.join(" ")) : "";
 
         return {
             "application": application,
-            "displayName": application.name,
+            "displayName": displayName,
             "name": name,
             "nameWords": name.split(/\s+/),
             "genericName": genericName,
             "keywordWords": keywords.split(/\s+/),
-            "searchableText": [name, genericName, application.comment.toLocaleLowerCase(), application.id.toLocaleLowerCase(), keywords].join(" ")
+            "searchableText": [name, genericName, root.normalizeText(application.comment), root.normalizeText(application.id), keywords].join(" ")
         };
     }
 
@@ -44,14 +49,14 @@ ScriptModel {
         return 6;
     }
 
-    function applicationScore(searchData: var, terms: list<string>): int {
-        if (searchData.name === root.query)
+    function applicationScore(searchData: var, terms: list<string>, query: string): int {
+        if (searchData.name === query)
             return 0;
-        if (searchData.name.startsWith(root.query))
+        if (searchData.name.startsWith(query))
             return 1;
-        if (searchData.nameWords.some(word => word.startsWith(root.query)))
+        if (searchData.nameWords.some(word => word.startsWith(query)))
             return 2;
-        if (searchData.genericName.startsWith(root.query))
+        if (searchData.genericName.startsWith(query))
             return 3;
 
         return terms.reduce((score, term) => Math.max(score, root.termScore(searchData, term)), 0);
@@ -73,7 +78,7 @@ ScriptModel {
             rankedApplications.push({
                 "application": searchData.application,
                 "name": searchData.displayName,
-                "score": root.applicationScore(searchData, terms)
+                "score": root.applicationScore(searchData, terms, root.query)
             });
         }
 

@@ -43,15 +43,14 @@ QtObject {
     readonly property int animationDuration: 220
 
     // Application launcher
-    readonly property color launcherVeilColor: palette3
-    readonly property real launcherVeilOpacity: 0.78
-    readonly property color launcherInputBg: "#ffffff"
+    readonly property color launcherVeilColor: palette7
+    readonly property real launcherVeilOpacity: 0.8
+    readonly property color launcherInputBg: "#fffeee"
     readonly property color launcherInputFg: palette5
-    readonly property color launcherInputPlaceholder: palette3
-    readonly property color launcherInputShadow: palette4
-    readonly property real launcherInputShadowOpacity: 0.72
+    readonly property color launcherInputPlaceholder: palette5
+    readonly property color launcherInputShadow: "#fffeee"
+    readonly property real launcherInputShadowOpacity: 0.35
     readonly property real launcherInputShadowBlur: 0.7
-    readonly property int launcherInputShadowOffset: 7
     readonly property color launcherResultBg: palette1
     readonly property color launcherResultSelectedBg: palette0
     readonly property real launcherResultOpacity: 0.9
@@ -70,13 +69,13 @@ QtObject {
     readonly property int launcherResultTextSpacing: 16
     readonly property int launcherResultRadius: 8
     readonly property int launcherMaxResults: 6
-    readonly property color launcherScrollbar: palette6
+    readonly property color launcherScrollbar: "#fffeee"
     readonly property int launcherScrollbarWidth: 10
     readonly property int launcherScrollbarGap: 10
     readonly property int launcherScrollStep: 30
     readonly property int launcherBottomShadowHeight: 70
     readonly property int launcherBottomShadowFadeDistance: launcherResultHeight + launcherResultSpacing
-    readonly property color launcherBottomShadowColor: palette6
+    readonly property color launcherBottomShadowColor: palette7
     readonly property real launcherBottomShadowOpacity: 0.75
     readonly property real launcherClosedScale: 0.96
 

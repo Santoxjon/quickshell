@@ -6,8 +6,8 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
-import Quickshell.Widgets
 
+import qs.components
 import qs.services
 
 PanelWindow {
@@ -20,9 +20,11 @@ PanelWindow {
     property DesktopEntry pendingApplication: null
     property var displayedApplications: []
     property real presentationProgress: root.opened ? 1 : 0
+    property real queryPresentationProgress: root.hasQuery ? 1 : 0
 
-    readonly property string query: applicationsModel.query
     readonly property bool hasQuery: applicationsModel.hasQuery
+    readonly property bool selectionValid: root.selectedIndex >= 0 && root.selectedIndex < root.displayedApplications.length
+    readonly property DesktopEntry selectedApplication: root.selectionValid ? root.displayedApplications[root.selectedIndex] : null
 
     onHasQueryChanged: {
         if (root.hasQuery)
@@ -55,33 +57,23 @@ PanelWindow {
         }
     }
 
+    Behavior on queryPresentationProgress {
+        NumberAnimation {
+            duration: root.opened ? root.theme.animationDuration : root.theme.fastAnimationDuration
+            easing.type: Easing.OutCubic
+        }
+    }
+
     onPresentationProgressChanged: {
-        if (!root.opened && root.presentationProgress === 0) {
+        if (!root.opened && root.presentationProgress <= 0) {
             const application = root.pendingApplication;
             root.pendingApplication = null;
             searchInput.clear();
             root.selectedIndex = -1;
 
             if (application)
-                application.execute();
+                applicationActions.launch(application);
         }
-    }
-
-    function focusedScreen(): var {
-        const focusedMonitor = Hyprland.focusedMonitor;
-
-        if (!focusedMonitor)
-            return root.screen;
-
-        for (let index = 0; index < Quickshell.screens.length; index++) {
-            const candidate = Quickshell.screens[index];
-            const monitor = Hyprland.monitorFor(candidate);
-
-            if (monitor && monitor.name === focusedMonitor.name)
-                return candidate;
-        }
-
-        return root.screen;
     }
 
     function openLauncher(): void {
@@ -92,7 +84,7 @@ PanelWindow {
 
         root.pendingApplication = null;
 
-        const targetScreen = root.focusedScreen();
+        const targetScreen = focusedScreenResolver.resolve();
 
         if (targetScreen)
             root.screen = targetScreen;
@@ -100,7 +92,10 @@ PanelWindow {
         searchInput.clear();
         root.selectedIndex = -1;
         root.opened = true;
-        Qt.callLater(() => searchInput.forceActiveFocus());
+        Qt.callLater(() => {
+            if (root.opened)
+                searchInput.forceActiveFocus();
+        });
     }
 
     function closeLauncher(): void {
@@ -113,18 +108,19 @@ PanelWindow {
     function moveSelection(direction: int): void {
         const resultCount = resultsView.count;
         const wasAtEnd = resultsView.atYEnd;
+        const step = Math.sign(direction);
 
-        if (resultCount === 0)
+        if (resultCount === 0 || step === 0)
             return;
 
-        if (root.selectedIndex < 0)
-            root.selectedIndex = direction > 0 ? 0 : resultCount - 1;
+        if (root.selectedIndex < 0 || root.selectedIndex >= resultCount)
+            root.selectedIndex = step > 0 ? 0 : resultCount - 1;
         else
-            root.selectedIndex = (root.selectedIndex + direction + resultCount) % resultCount;
+            root.selectedIndex = (root.selectedIndex + step + resultCount) % resultCount;
 
         resultsView.positionViewAtIndex(root.selectedIndex, ListView.Contain);
 
-        if (direction < 0 && wasAtEnd) {
+        if (step < 0 && wasAtEnd) {
             const rowStep = root.theme.launcherResultHeight + root.theme.launcherResultSpacing;
 
             resultsView.contentY = Math.max(resultsView.originY, resultsView.contentY - rowStep);
@@ -139,7 +135,7 @@ PanelWindow {
     }
 
     function scrollResults(wheelDelta: real): void {
-        if (wheelDelta === 0)
+        if (!Number.isFinite(wheelDelta) || wheelDelta === 0)
             return;
 
         const minimumY = resultsView.originY;
@@ -156,6 +152,14 @@ PanelWindow {
 
         root.pendingApplication = application;
         root.closeLauncher();
+    }
+
+    ApplicationActions {
+        id: applicationActions
+    }
+
+    FocusedScreenResolver {
+        id: focusedScreenResolver
     }
 
     GlobalShortcut {
@@ -190,6 +194,7 @@ PanelWindow {
         id: selectionUpdateTimer
 
         interval: 0
+        repeat: false
 
         onTriggered: root.selectFirstResult()
     }
@@ -211,14 +216,7 @@ PanelWindow {
     Rectangle {
         anchors.fill: parent
         color: root.theme.launcherVeilColor
-        opacity: root.hasQuery ? root.theme.launcherVeilOpacity * root.presentationProgress : 0
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: root.opened ? root.theme.animationDuration : root.theme.fastAnimationDuration
-                easing.type: Easing.OutCubic
-            }
-        }
+        opacity: root.theme.launcherVeilOpacity * root.queryPresentationProgress * root.presentationProgress
 
         MouseArea {
             anchors.fill: parent
@@ -248,17 +246,6 @@ PanelWindow {
             }
         }
 
-        MultiEffect {
-            anchors.fill: searchBox
-            source: searchBox
-            autoPaddingEnabled: true
-            shadowEnabled: true
-            shadowColor: root.theme.launcherInputShadow
-            shadowOpacity: root.theme.launcherInputShadowOpacity
-            shadowBlur: root.theme.launcherInputShadowBlur
-            shadowVerticalOffset: root.theme.launcherInputShadowOffset
-        }
-
         Rectangle {
             id: searchBox
 
@@ -268,6 +255,14 @@ PanelWindow {
 
             radius: root.theme.launcherInputRadius
             color: root.theme.launcherInputBg
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                autoPaddingEnabled: true
+                shadowEnabled: true
+                shadowColor: root.theme.launcherInputShadow
+                shadowOpacity: root.theme.launcherInputShadowOpacity
+                shadowBlur: root.theme.launcherInputShadowBlur
+            }
 
             MouseArea {
                 anchors.fill: parent
@@ -349,8 +344,8 @@ PanelWindow {
                         break;
                     case Qt.Key_Return:
                     case Qt.Key_Enter:
-                        if (root.selectedIndex >= 0)
-                            root.activateApplication(root.displayedApplications[root.selectedIndex]);
+                        if (root.selectedApplication)
+                            root.activateApplication(root.selectedApplication);
                         event.accepted = true;
                         break;
                     }
@@ -379,7 +374,7 @@ PanelWindow {
             bottomRightRadius: root.theme.launcherResultRadius
 
             visible: root.hasQuery || opacity > 0
-            opacity: root.hasQuery ? root.presentationProgress : 0
+            opacity: root.queryPresentationProgress * root.presentationProgress
             state: resultsContainer.hasOverflow ? "scrollbarShown" : "scrollbarHidden"
 
             onVisibleChanged: {
@@ -460,13 +455,6 @@ PanelWindow {
                         duration: root.theme.animationDuration
                         easing.type: Easing.OutCubic
                     }
-                }
-            }
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: root.opened ? root.theme.animationDuration : root.theme.fastAnimationDuration
-                    easing.type: Easing.OutCubic
                 }
             }
 
@@ -555,111 +543,21 @@ PanelWindow {
                         }
                     }
 
-                    delegate: Rectangle {
+                    delegate: LauncherResult {
                         id: resultRow
 
                         required property DesktopEntry modelData
                         required property int index
 
-                        readonly property bool selected: root.selectedIndex === resultRow.index
-                        readonly property bool hovered: resultMouseArea.containsMouse
-
                         width: ListView.view.width
                         height: root.theme.launcherResultHeight
+                        theme: root.theme
+                        application: resultRow.modelData
+                        selected: root.selectedIndex === resultRow.index
 
-                        radius: root.theme.launcherResultRadius
-                        color: resultRow.selected ? root.theme.launcherResultSelectedBg : root.theme.launcherResultBg
-                        opacity: resultRow.hovered || resultRow.selected ? 1 : root.theme.launcherResultOpacity
-                        border.width: root.theme.thinBorderWidth
-                        border.color: root.theme.border
-
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: root.theme.fastAnimationDuration
-                            }
-                        }
-
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: root.theme.fastAnimationDuration
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-
-                        IconImage {
-                            id: applicationIcon
-
-                            anchors.left: parent.left
-                            anchors.leftMargin: root.theme.launcherResultHorizontalPadding
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            width: root.theme.launcherResultIconSize
-                            height: width
-
-                            source: Quickshell.iconPath(resultRow.modelData.icon, true)
-                            asynchronous: true
-                            mipmap: true
-                        }
-
-                        Text {
-                            anchors.centerIn: applicationIcon
-                            visible: applicationIcon.status === Image.Error || applicationIcon.status === Image.Null
-
-                            text: ""
-                            color: root.theme.fg
-                            font.family: root.theme.fontName
-                            font.pixelSize: root.theme.launcherResultIconSize - 8
-                        }
-
-                        Column {
-                            anchors.left: applicationIcon.right
-                            anchors.leftMargin: root.theme.launcherResultTextSpacing
-                            anchors.right: parent.right
-                            anchors.rightMargin: root.theme.launcherResultHorizontalPadding
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            spacing: 1
-
-                            Text {
-                                width: parent.width
-
-                                text: resultRow.modelData.name
-                                color: root.theme.fg
-                                elide: Text.ElideRight
-                                font.family: root.theme.fontName
-                                font.pixelSize: root.theme.titleSize
-                                font.weight: Font.Bold
-                            }
-
-                            Text {
-                                width: parent.width
-
-                                visible: text.length > 0
-                                text: resultRow.modelData.genericName || resultRow.modelData.comment || ""
-                                color: root.theme.palette3
-                                elide: Text.ElideRight
-                                font.family: root.theme.fontName
-                                font.pixelSize: root.theme.captionFontSize
-                            }
-                        }
-
-                        MouseArea {
-                            id: resultMouseArea
-
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-
-                            onClicked: root.activateApplication(resultRow.modelData)
-                            onEntered: root.selectedIndex = resultRow.index
-
-                            onWheel: wheel => {
-                                const wheelDelta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.pixelDelta.y;
-
-                                root.scrollResults(wheelDelta);
-                                wheel.accepted = true;
-                            }
-                        }
+                        onActivated: root.activateApplication(resultRow.modelData)
+                        onPointerEntered: root.selectedIndex = resultRow.index
+                        onWheelScrolled: delta => root.scrollResults(delta)
                     }
                 }
 
