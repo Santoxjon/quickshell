@@ -9,10 +9,11 @@ Item {
 
     readonly property string icon: ""
 
+    signal activated
+
     implicitWidth: label.implicitWidth
     implicitHeight: label.implicitHeight
 
-    // Display-only placeholder until shutdown behavior is implemented.
     ModuleText {
         id: label
 
@@ -21,5 +22,10 @@ Item {
         color: root.theme.shutdownButton
     }
 
-    // TODO: Implement shutdown behavior when clicked.
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.PointingHandCursor
+
+        onClicked: root.activated()
+    }
 }

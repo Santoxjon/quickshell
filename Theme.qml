@@ -9,6 +9,7 @@ QtObject {
     readonly property color palette4: "#622b14"
     readonly property color palette5: "#4d1f0f"
     readonly property color palette6: "#3a170b"
+    readonly property color palette7: "#0f0502"
 
     // Semantic colors
     readonly property color bg: palette0
@@ -78,6 +79,24 @@ QtObject {
     readonly property color launcherBottomShadowColor: palette6
     readonly property real launcherBottomShadowOpacity: 0.75
     readonly property real launcherClosedScale: 0.96
+
+    // Power menu
+    readonly property color powerMenuVeilColor: palette7
+    readonly property real powerMenuVeilOpacity: 0.9
+    readonly property real powerMenuCountdownVeilOpacity: 1.0
+    readonly property color powerMenuActionColor: palette0
+    readonly property int powerMenuMaxWidth: 1500
+    readonly property int powerMenuHorizontalMargin: 80
+    readonly property int powerMenuButtonSize: 220
+    readonly property int powerMenuTextSpacing: 42
+    readonly property int powerMenuTextSize: 30
+    readonly property real powerMenuClosedScale: 0.88
+    readonly property real powerMenuHoverScale: 1.1
+    readonly property real powerMenuHiddenScale: 0.72
+    readonly property real powerMenuShadowOpacity: 0.9
+    readonly property real powerMenuShadowBlur: 0.8
+    readonly property int powerMenuCountdownSeconds: 9
+    readonly property int powerMenuIdleTimeout: 20000
 
     // Tooltips
     readonly property int tooltipOffset: 6

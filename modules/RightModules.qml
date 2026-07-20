@@ -14,6 +14,7 @@ Row {
     signal audioUnhovered
     signal cpuHovered
     signal cpuUnhovered
+    signal shutdownRequested
 
     AppIndicator {
         theme: root.theme
@@ -74,5 +75,7 @@ Row {
 
     ShutdownModule {
         theme: root.theme
+
+        onActivated: root.shutdownRequested()
     }
 }

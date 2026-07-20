@@ -17,6 +17,7 @@ PanelWindow {
     signal audioUnhovered
     signal cpuHovered
     signal cpuUnhovered
+    signal shutdownRequested
 
     anchors {
         top: true
@@ -77,6 +78,7 @@ PanelWindow {
                     onAudioUnhovered: root.audioUnhovered()
                     onCpuHovered: root.cpuHovered()
                     onCpuUnhovered: root.cpuUnhovered()
+                    onShutdownRequested: root.shutdownRequested()
                 }
             }
         }

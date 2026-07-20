@@ -61,6 +61,8 @@ ShellRoot {
             root.cpuModuleHovered = false;
             cpuDrawerCloseTimer.restart();
         }
+
+        onShutdownRequested: powerMenu.openMenu()
     }
 
     AudioDrawer {
@@ -158,6 +160,12 @@ ShellRoot {
     }
 
     AppLauncher {
+        theme: appTheme
+    }
+
+    PowerMenu {
+        id: powerMenu
+
         theme: appTheme
     }
 }
