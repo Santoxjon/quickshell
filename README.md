@@ -269,8 +269,11 @@ services/       Nonvisual state and process adapters
 drawers/        Expandable audio-device UI
 popups/         Notifications, tooltips, and flyouts
 scripts/        System-information helpers and HS80 daemons
+shaders/        GPU shader sources and compiled Qt Shader Baker assets
 assets/         Application and lock-state images
 ```
+
+The `shaders/` directory contains custom effects used by QML `ShaderEffect` items. For example, `PowerMenuVeil.frag` implements the power-menu veil dithering, while `PowerMenuVeil.frag.qsb` is its compiled Qt Shader Baker asset loaded at runtime. When a shader source is changed, its matching `.qsb` file must also be regenerated.
 
 ## Troubleshooting
 

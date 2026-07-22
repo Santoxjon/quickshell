@@ -23,7 +23,7 @@ QtObject {
     readonly property color lockFlyoutBg: palette2
 
     // Typography
-    readonly property string fontName: "JetBrainsMono Nerd Font"
+    readonly property string fontName: "CaskaydiaCove Nerd Font"
     readonly property int captionFontSize: 13
     readonly property int smallFontSize: 15
     readonly property int fontSize: 17
