@@ -115,6 +115,12 @@ QtObject {
     // Application indicators
     readonly property int appIndicatorIconSize: 17
     readonly property int appIndicatorSpacing: 8
+    readonly property int appIndicatorMenuWidth: 230
+    readonly property int appIndicatorMenuPadding: 5
+    readonly property int appIndicatorMenuItemHeight: 32
+    readonly property int appIndicatorMenuItemRadius: 3
+    readonly property int appIndicatorMenuItemSpacing: 2
+    readonly property int appIndicatorMenuItemHorizontalPadding: 10
 
     // Audio outputs
     readonly property color audioOutputActiveText: palette4

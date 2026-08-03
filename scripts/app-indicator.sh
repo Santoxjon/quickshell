@@ -31,13 +31,38 @@ last_state=$'\x1f'
 emit_state() {
     local state
 
-    if ! state=$(hyprctl clients -j | jq -r '
-        map((.class // "") | ascii_downcase) as $classes
-        | [
-            if any($classes[]; test("discord|vesktop|legcord")) then "discord" else empty end,
-            if any($classes[]; test("steam")) then "steam" else empty end
+    if ! state=$(hyprctl clients -j | jq -c '
+        def application($id; $pattern):
+            [
+                .[]
+                | select(
+                    [(.class // ""), (.initialClass // "")]
+                    | join(" ")
+                    | ascii_downcase
+                    | test($pattern)
+                )
+                | {
+                    address,
+                    workspaceId: (.workspace.id // -1),
+                    focusHistoryId: (.focusHistoryID // 999999)
+                }
+            ]
+            | sort_by(.focusHistoryId)
+            | if length == 0 then
+                empty
+              else
+                {
+                    id: $id,
+                    workspaceId: .[0].workspaceId,
+                    windows: map({address, workspaceId})
+                }
+              end;
+
+        [
+            application("discord"; "discord|vesktop|legcord"),
+            application("steam"; "steam"),
+            application("amule"; "org\\.amule\\.amule|amule")
         ]
-        | join(" ")
     '); then
         printf 'app-indicator: failed to read Hyprland clients\n' >&2
         return 1
@@ -53,7 +78,7 @@ emit_state
 
 while IFS= read -r event; do
     case "$event" in
-        openwindow* | closewindow*)
+        openwindow* | closewindow* | movewindow*)
             emit_state
             ;;
     esac
