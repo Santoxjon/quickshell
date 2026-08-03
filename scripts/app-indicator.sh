@@ -61,6 +61,7 @@ emit_state() {
         [
             application("discord"; "discord|vesktop|legcord"),
             application("steam"; "steam"),
+            application("telegram"; "org\\.telegram\\.desktop|telegramdesktop|telegram-desktop"),
             application("amule"; "org\\.amule\\.amule|amule")
         ]
     '); then

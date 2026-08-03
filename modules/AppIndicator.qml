@@ -28,6 +28,11 @@ Row {
             "extraActions": []
         },
         {
+            "id": "telegram",
+            "name": "Telegram",
+            "extraActions": []
+        },
+        {
             "id": "amule",
             "name": "aMule",
             "serviceUnit": "amuled.service",
