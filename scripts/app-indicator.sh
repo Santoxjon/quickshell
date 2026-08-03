@@ -64,6 +64,7 @@ emit_state() {
             application("steam"; "steam"),
             application("telegram"; "org\\.telegram\\.desktop|telegramdesktop|telegram-desktop"),
             application("firefox"; "firefox"),
+            application("code"; "(^| )(code|code-oss|visual-studio-code)( |$)"),
             application("amule"; "org\\.amule\\.amule|amule")
         ]
     '); then

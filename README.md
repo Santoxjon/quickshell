@@ -6,7 +6,7 @@ A personal [Quickshell](https://quickshell.org/) configuration for Hyprland. It 
 
 - Hyprland workspaces with custom labels
 - Centered clock
-- Discord, Steam, Telegram, Firefox, and aMule running indicators
+- Discord, Steam, Telegram, Firefox, Code, and aMule running indicators
 - CPU usage with a per-core tooltip
 - Used memory as a percentage or `used / total` in GB
 - CPU temperature and local IPv4 address
@@ -197,7 +197,7 @@ Applications are configured through the `applications` property in [`modules/App
 }
 ```
 
-Discord, Steam, and Telegram use only the generic actions. Telegram detection covers the installed `TelegramDesktop` startup class together with the common `org.telegram.desktop` and `telegram-desktop` variants.
+Discord, Steam, Telegram, and Code use only the generic actions. Telegram detection covers the installed `TelegramDesktop` startup class together with the common `org.telegram.desktop` and `telegram-desktop` variants. Code detection covers the `code`, `code-oss`, and `visual-studio-code` window classes.
 
 Firefox uses [`assets/firefox.png`](assets/firefox.png) and adds actions for opening normal and private windows. When more than one Firefox window is open, a badge in the icon's lower-right corner displays the window count. Send and Bring open a per-window picker based on each window's page title and workspace, allowing visible and hidden Firefox windows to be managed independently. The reusable `individualWindowMovement` application option enables this behavior.
 

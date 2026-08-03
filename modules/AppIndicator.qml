@@ -51,6 +51,11 @@ Row {
             ]
         },
         {
+            "id": "code",
+            "name": "Code",
+            "extraActions": []
+        },
+        {
             "id": "amule",
             "name": "aMule",
             "serviceUnit": "amuled.service",

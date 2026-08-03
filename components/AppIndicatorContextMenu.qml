@@ -20,6 +20,7 @@ PopupWindow {
     property var pendingMoveWindows: []
     property int pendingWorkspaceId: -1
     property string windowPickerAction: ""
+    property bool menuOpened: false
 
     readonly property int moveAnimationDuration: 200
     readonly property real moveAnimationSpeed: root.moveAnimationDuration / 100
@@ -37,9 +38,13 @@ PopupWindow {
     signal serviceCloseStarted
     signal serviceCloseFinished(bool succeeded)
 
-    visible: false
-    grabFocus: true
+    visible: root.anchorItem.visible
+    grabFocus: false
     color: "transparent"
+    mask: Region {
+        width: root.menuOpened ? root.width : 0
+        height: root.menuOpened ? root.height : 0
+    }
 
     implicitWidth: root.windowPickerOpened ? root.theme.appIndicatorWindowPickerWidth : root.theme.appIndicatorMenuWidth
     implicitHeight: menuColumn.implicitHeight + 2 * root.theme.appIndicatorMenuPadding
@@ -54,17 +59,32 @@ PopupWindow {
             return;
 
         root.windowPickerAction = "";
-        root.visible = true;
+        root.menuOpened = true;
+        menuFocusGrab.active = true;
     }
 
     function closeMenu(): void {
         root.windowPickerAction = "";
-        root.visible = false;
+        root.menuOpened = false;
+        menuFocusGrab.active = false;
     }
 
     onVisibleChanged: {
-        if (!root.visible)
+        if (!root.visible) {
+            root.menuOpened = false;
             root.windowPickerAction = "";
+        }
+    }
+
+    HyprlandFocusGrab {
+        id: menuFocusGrab
+
+        windows: [root]
+
+        onCleared: {
+            if (root.menuOpened)
+                root.closeMenu();
+        }
     }
 
     function focusWorkspace(): void {
@@ -378,6 +398,7 @@ PopupWindow {
     }
 
     Rectangle {
+        visible: root.menuOpened
         anchors.fill: parent
 
         radius: root.theme.cornerRadius

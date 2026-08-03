@@ -8,10 +8,12 @@ PopupWindow {
     required property Item anchorItem
     required property string label
     property bool hoverActive: false
+    property bool tooltipShown: false
 
-    visible: false
+    visible: root.anchorItem.visible
     grabFocus: false
     color: "transparent"
+    mask: Region {}
 
     implicitWidth: tooltipLabel.implicitWidth + 2 * root.theme.tooltipHorizontalPadding
     implicitHeight: tooltipLabel.implicitHeight + 2 * root.theme.tooltipVerticalPadding
@@ -29,7 +31,7 @@ PopupWindow {
     function endHover(): void {
         root.hoverActive = false;
         showTimer.stop();
-        root.visible = false;
+        root.tooltipShown = false;
     }
 
     function dismiss(): void {
@@ -44,11 +46,12 @@ PopupWindow {
 
         onTriggered: {
             if (root.hoverActive)
-                root.visible = true;
+                root.tooltipShown = true;
         }
     }
 
     Rectangle {
+        visible: root.tooltipShown
         anchors.fill: parent
 
         radius: root.theme.tooltipCornerRadius
