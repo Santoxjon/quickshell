@@ -16,19 +16,28 @@ PopupWindow {
     property var extraActions: []
     property string serviceUnit: ""
     property var modeSwitchCommand: []
+    property var statusCommand: []
+    property int statusRefreshInterval: root.theme.appIndicatorStatusRefreshInterval
     property bool individualWindowMovement: false
     property var pendingMoveWindows: []
     property int pendingWorkspaceId: -1
     property string windowPickerAction: ""
+    property bool statusPageOpened: false
     property bool menuOpened: false
+    property string statusServer: "Disconnected"
+    property string statusKad: "Disconnected"
+    property string statusDownload: "--"
+    property string statusUpload: "--"
 
     readonly property int moveAnimationDuration: 200
     readonly property real moveAnimationSpeed: root.moveAnimationDuration / 100
     readonly property real defaultAnimationSpeed: 8
     readonly property bool serviceManaged: root.serviceUnit.length > 0 && root.modeSwitchCommand.length > 0
+    readonly property bool statusManaged: root.statusCommand.length > 0
     readonly property bool serviceMode: root.serviceManaged && root.application && root.application.mode === "service"
     readonly property bool transitionMode: root.serviceManaged && root.application && root.application.mode === "transition"
     readonly property bool windowPickerOpened: root.windowPickerAction.length > 0
+    readonly property bool submenuOpened: root.windowPickerOpened || root.statusPageOpened
     readonly property var windowPickerModel: root.windowPickerCandidates()
 
     property string activeModeSwitchTarget: ""
@@ -46,7 +55,7 @@ PopupWindow {
         height: root.menuOpened ? root.height : 0
     }
 
-    implicitWidth: root.windowPickerOpened ? root.theme.appIndicatorWindowPickerWidth : root.theme.appIndicatorMenuWidth
+    implicitWidth: root.submenuOpened ? root.theme.appIndicatorWindowPickerWidth : root.theme.appIndicatorMenuWidth
     implicitHeight: menuColumn.implicitHeight + 2 * root.theme.appIndicatorMenuPadding
 
     anchor.item: root.anchorItem
@@ -59,20 +68,32 @@ PopupWindow {
             return;
 
         root.windowPickerAction = "";
+        root.statusPageOpened = false;
         root.menuOpened = true;
         menuFocusGrab.active = true;
+
+        if (root.statusManaged)
+            root.refreshStatus();
     }
 
     function closeMenu(): void {
         root.windowPickerAction = "";
+        root.statusPageOpened = false;
         root.menuOpened = false;
         menuFocusGrab.active = false;
+
+        if (statusProcess.running)
+            statusProcess.signal(15);
     }
 
     onVisibleChanged: {
         if (!root.visible) {
             root.menuOpened = false;
             root.windowPickerAction = "";
+            root.statusPageOpened = false;
+
+            if (statusProcess.running)
+                statusProcess.signal(15);
         }
     }
 
@@ -151,13 +172,58 @@ PopupWindow {
     }
 
     function openWindowPicker(action: string): void {
+        root.statusPageOpened = false;
         root.windowPickerAction = action;
         Qt.callLater(() => root.anchor.updateAnchor());
     }
 
-    function closeWindowPicker(): void {
+    function openStatusPage(): void {
         root.windowPickerAction = "";
+        root.statusPageOpened = true;
         Qt.callLater(() => root.anchor.updateAnchor());
+    }
+
+    function closeSubmenu(): void {
+        root.windowPickerAction = "";
+        root.statusPageOpened = false;
+        Qt.callLater(() => root.anchor.updateAnchor());
+    }
+
+    function refreshStatus(): void {
+        if (!root.menuOpened || !root.statusManaged || statusProcess.running)
+            return;
+
+        statusProcess.running = true;
+    }
+
+    function parseStatus(output: string): void {
+        const text = String(output ?? "");
+        const serverLine = text.match(/^\s*>\s*eD2k:\s*(.+)$/mi);
+        const kadLine = text.match(/^\s*>\s*Kad:\s*(.+)$/mi);
+        const downloadLine = text.match(/^\s*>\s*Download:\s*(.+)$/mi);
+        const uploadLine = text.match(/^\s*>\s*Upload:\s*(.+)$/mi);
+
+        root.statusServer = "Disconnected";
+        root.statusKad = "Disconnected";
+        root.statusDownload = downloadLine ? downloadLine[1].trim() : "--";
+        root.statusUpload = uploadLine ? uploadLine[1].trim() : "--";
+
+        if (serverLine) {
+            const serverValue = serverLine[1].trim();
+            const connectedServer = serverValue.match(/^Connected to\s+(.+?)(?:\s+\[[^\]]+\])?\s+with\s+(HighID|LowID)\s*$/i);
+
+            if (connectedServer) {
+                const idType = connectedServer[2].toLowerCase() === "highid" ? "HighID" : "LowID";
+                root.statusServer = `${connectedServer[1].trim()} · ${idType}`;
+            }
+        }
+
+        if (kadLine) {
+            const kadValue = kadLine[1].trim();
+
+            if (!/(?:disconnected|not connected)/i.test(kadValue) && /connected/i.test(kadValue))
+                root.statusKad = "OK";
+        }
     }
 
     function windowPickerLabel(appWindow, index: int): string {
@@ -313,6 +379,30 @@ PopupWindow {
     }
 
     Process {
+        id: statusProcess
+
+        command: root.statusCommand
+
+        stdout: StdioCollector {
+            id: statusStdout
+        }
+
+        stderr: StdioCollector {}
+
+        onExited: function () {
+            root.parseStatus(statusStdout.text);
+        }
+    }
+
+    Timer {
+        interval: root.statusRefreshInterval
+        running: root.menuOpened && root.statusManaged
+        repeat: true
+
+        onTriggered: root.refreshStatus()
+    }
+
+    Process {
         id: modeSwitchProcess
 
         stdout: SplitParser {
@@ -413,12 +503,12 @@ PopupWindow {
             spacing: root.theme.appIndicatorMenuItemSpacing
 
             ContextMenuAction {
-                visible: root.windowPickerOpened
+                visible: root.submenuOpened
                 theme: root.theme
                 availableWidth: root.implicitWidth
                 label: "← Back"
 
-                onTriggered: root.closeWindowPicker()
+                onTriggered: root.closeSubmenu()
             }
 
             ContextMenuAction {
@@ -450,7 +540,51 @@ PopupWindow {
             }
 
             ContextMenuAction {
-                visible: !root.windowPickerOpened && root.serviceManaged
+                visible: root.statusPageOpened
+                theme: root.theme
+                availableWidth: root.implicitWidth
+                label: "aMule status"
+                actionEnabled: false
+            }
+
+            ContextMenuAction {
+                visible: root.statusPageOpened
+                theme: root.theme
+                availableWidth: root.implicitWidth
+                label: `  ${root.statusServer}`
+                actionEnabled: false
+                dimWhenDisabled: false
+            }
+
+            ContextMenuAction {
+                visible: root.statusPageOpened
+                theme: root.theme
+                availableWidth: root.implicitWidth
+                label: `  ${root.statusKad}`
+                actionEnabled: false
+                dimWhenDisabled: false
+            }
+
+            ContextMenuAction {
+                visible: root.statusPageOpened
+                theme: root.theme
+                availableWidth: root.implicitWidth
+                label: `  ${root.statusDownload}`
+                actionEnabled: false
+                dimWhenDisabled: false
+            }
+
+            ContextMenuAction {
+                visible: root.statusPageOpened
+                theme: root.theme
+                availableWidth: root.implicitWidth
+                label: `  ${root.statusUpload}`
+                actionEnabled: false
+                dimWhenDisabled: false
+            }
+
+            ContextMenuAction {
+                visible: !root.submenuOpened && root.serviceManaged
                 theme: root.theme
                 label: root.transitionMode
                     ? (root.application.targetMode === "service" ? "Switching to Service..." : "Switching to GUI...")
@@ -459,7 +593,15 @@ PopupWindow {
             }
 
             ContextMenuAction {
-                visible: !root.windowPickerOpened
+                visible: !root.submenuOpened && root.statusManaged
+                theme: root.theme
+                label: "Check status →"
+
+                onTriggered: root.openStatusPage()
+            }
+
+            ContextMenuAction {
+                visible: !root.submenuOpened
                 theme: root.theme
                 label: "Focus workspace"
                 actionEnabled: root.focusWorkspaceId() > 0 && !root.transitionMode
@@ -475,7 +617,7 @@ PopupWindow {
 
                     required property var modelData
 
-                    visible: !root.windowPickerOpened
+                    visible: !root.submenuOpened
                     theme: root.theme
                     label: String(extraActionItem.modelData.text ?? extraActionItem.modelData.id ?? "Action")
                     actionEnabled: extraActionItem.modelData.enabled !== false
@@ -485,7 +627,7 @@ PopupWindow {
             }
 
             ContextMenuAction {
-                visible: !root.windowPickerOpened
+                visible: !root.submenuOpened
                     && (root.individualWindowMovement ? root.nonHiddenWindows().length > 0 : !root.applicationIsHidden())
                 theme: root.theme
                 label: "Send to hidden workspace"
@@ -495,7 +637,7 @@ PopupWindow {
             }
 
             ContextMenuAction {
-                visible: !root.windowPickerOpened
+                visible: !root.submenuOpened
                     && (root.individualWindowMovement ? root.hiddenWindows().length > 0 : root.applicationIsHidden())
                 theme: root.theme
                 label: "Bring here"
@@ -505,7 +647,7 @@ PopupWindow {
             }
 
             ContextMenuAction {
-                visible: !root.windowPickerOpened && root.serviceManaged
+                visible: !root.submenuOpened && root.serviceManaged
                 theme: root.theme
                 label: root.serviceMode ? "Switch to GUI mode" : "Switch to service mode"
                 actionEnabled: !root.transitionMode && !modeSwitchProcess.running && !serviceControlProcess.running
@@ -514,14 +656,14 @@ PopupWindow {
             }
 
             Rectangle {
-                visible: !root.windowPickerOpened
+                visible: !root.submenuOpened
                 width: root.implicitWidth - 2 * root.theme.appIndicatorMenuPadding
                 height: root.theme.thinBorderWidth
                 color: root.theme.separator
             }
 
             ContextMenuAction {
-                visible: !root.windowPickerOpened
+                visible: !root.submenuOpened
                 theme: root.theme
                 label: "Close application"
                 actionEnabled: !root.transitionMode

@@ -123,9 +123,10 @@ QtObject {
     readonly property int appIndicatorMenuItemSpacing: 2
     readonly property int appIndicatorMenuItemHorizontalPadding: 10
     readonly property int appIndicatorWindowPickerWidth: 360
-    readonly property int appIndicatorCountBadgeSize: 13
-    readonly property int appIndicatorCountBadgeFontSize: 8
-    readonly property int appIndicatorCountBadgeOffset: 4
+    readonly property int appIndicatorCountBadgeSize: 14
+    readonly property int appIndicatorCountBadgeFontSize: 10
+    readonly property int appIndicatorCountBadgeOffset: 8
+    readonly property int appIndicatorStatusRefreshInterval: 3000
 
     // Audio outputs
     readonly property color audioOutputActiveText: palette4

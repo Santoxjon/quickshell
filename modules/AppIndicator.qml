@@ -60,6 +60,7 @@ Row {
             "name": "aMule",
             "serviceUnit": "amuled.service",
             "modeSwitchCommand": [Quickshell.shellDir + "/scripts/amule-mode.sh"],
+            "statusCommand": ["amulecmd", "-c", "status"],
             "extraActions": []
         }
     ]
@@ -248,6 +249,7 @@ Row {
                 extraActions: applicationIcon.modelData.extraActions ?? []
                 serviceUnit: applicationIcon.modelData.serviceUnit ?? ""
                 modeSwitchCommand: applicationIcon.modelData.modeSwitchCommand ?? []
+                statusCommand: applicationIcon.modelData.statusCommand ?? []
                 individualWindowMovement: applicationIcon.modelData.individualWindowMovement === true
 
                 onModeSwitchStarted: targetMode => root.beginAmuleModeTransition(targetMode)
