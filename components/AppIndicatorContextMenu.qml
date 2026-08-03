@@ -222,7 +222,7 @@ PopupWindow {
             const kadValue = kadLine[1].trim();
 
             if (!/(?:disconnected|not connected)/i.test(kadValue) && /connected/i.test(kadValue))
-                root.statusKad = "OK";
+                root.statusKad = "Kad: OK";
         }
     }
 

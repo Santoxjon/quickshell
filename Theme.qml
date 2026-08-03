@@ -103,7 +103,7 @@ QtObject {
     readonly property int tooltipVerticalPadding: 9
     readonly property int tooltipCornerRadius: 4
     readonly property real tooltipLineHeight: 1.25
-    readonly property int tooltipDelay: 350
+    readonly property int tooltipDelay: 150
 
     // Top bar
     readonly property color topBarBottomBorder: palette4
