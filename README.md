@@ -6,7 +6,7 @@ A personal [Quickshell](https://quickshell.org/) configuration for Hyprland. It 
 
 - Hyprland workspaces with custom labels
 - Centered clock
-- Discord and Steam running indicators
+- Discord, Steam, Telegram, Firefox, and aMule running indicators
 - CPU usage with a per-core tooltip
 - Used memory as a percentage or `used / total` in GB
 - CPU temperature and local IPv4 address
@@ -31,7 +31,7 @@ Install the following runtime dependencies with your distribution's package mana
 | PipeWire and WirePlumber | Audio devices and volume control |
 | JetBrainsMono Nerd Font | Text and status icons |
 | Bash | Helper scripts |
-| `jq` | Discord and Steam client detection |
+| `jq` | Application-window detection and state generation |
 | `socat` | Hyprland event-socket listener |
 | `mpstat` from `sysstat` | CPU usage |
 | `sensors` from `lm_sensors` | CPU temperature |
@@ -172,7 +172,7 @@ Edit [`modules/Workspaces.qml`](modules/Workspaces.qml) to change workspace labe
 
 ### Application indicators
 
-[`scripts/app-indicator.sh`](scripts/app-indicator.sh) listens to Hyprland events and detects Discord-compatible clients and Steam. Right-clicking an active indicator opens a menu that can focus the application's workspace, move all of its windows to hidden workspace 99, bring them back to the currently focused workspace, or close them gracefully. Workspace 99 is intentionally outside the workspace selector shown in the top bar; change `hiddenWorkspaceId` in [`modules/AppIndicator.qml`](modules/AppIndicator.qml) to use a different one. Send and Bring temporarily run the normal Hyprland window animation at 200ms, then restore its active 800ms duration.
+[`scripts/app-indicator.sh`](scripts/app-indicator.sh) listens to Hyprland events and detects the configured application windows. Right-clicking an active indicator opens a menu that can focus the application's workspace, move its windows to hidden workspace 99, bring them back to the currently focused workspace, or close them gracefully. Workspace 99 is intentionally outside the workspace selector shown in the top bar; change `hiddenWorkspaceId` in [`modules/AppIndicator.qml`](modules/AppIndicator.qml) to use a different one. Send and Bring temporarily run the normal Hyprland window animation at 200ms, then restore its active 800ms duration.
 
 Applications are configured through the `applications` property in [`modules/AppIndicator.qml`](modules/AppIndicator.qml). Extra context-menu actions can be added per application with either a QML callback or a Hyprland Lua dispatcher:
 
@@ -197,7 +197,11 @@ Applications are configured through the `applications` property in [`modules/App
 }
 ```
 
-Discord, Steam, and Telegram use only the generic actions. Telegram detection covers the installed `TelegramDesktop` startup class together with the common `org.telegram.desktop` and `telegram-desktop` variants. aMule additionally reports whether it is running as the `amuled.service` system service or as the `org.amule.aMule` GUI. Its mode-switch action stops the current mode before starting the other one; switching to the service waits for the GUI process to exit so both cores never use the same configuration simultaneously. While switching, a transient application state keeps the indicator visible until the target mode is detected. A running transition times out after 15 seconds; after a successful command it gets a final five-second grace period for the target state to appear. A reported failure clears the transient state immediately. Closing aMule directly never enables the grace period and hides its service indicator as soon as Stop is requested. The service-status model polls systemd once per second.
+Discord, Steam, and Telegram use only the generic actions. Telegram detection covers the installed `TelegramDesktop` startup class together with the common `org.telegram.desktop` and `telegram-desktop` variants.
+
+Firefox uses [`assets/firefox.png`](assets/firefox.png) and adds actions for opening normal and private windows. When more than one Firefox window is open, a badge in the icon's lower-right corner displays the window count. Send and Bring open a per-window picker based on each window's page title and workspace, allowing visible and hidden Firefox windows to be managed independently. The reusable `individualWindowMovement` application option enables this behavior.
+
+aMule additionally reports whether it is running as the `amuled.service` system service or as the `org.amule.aMule` GUI. Its mode-switch action stops the current mode before starting the other one; switching to the service waits for the GUI process to exit so both cores never use the same configuration simultaneously. While switching, a transient application state keeps the indicator visible until the target mode is detected. A running transition times out after 15 seconds; after a successful command it gets a final five-second grace period for the target state to appear. A reported failure clears the transient state immediately. Closing aMule directly never enables the grace period and hides its service indicator as soon as Stop is requested. The service-status model polls systemd once per second.
 
 Update the process-class patterns in the helper script and add a matching image/configuration entry when adding another application.
 

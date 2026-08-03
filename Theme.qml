@@ -26,17 +26,17 @@ QtObject {
     readonly property string fontName: "CaskaydiaCove Nerd Font"
     readonly property int captionFontSize: 13
     readonly property int smallFontSize: 15
-    readonly property int fontSize: 17
+    readonly property int fontSize: 18
     readonly property int titleSize: 20
 
     // Dimensions
-    readonly property int barHeight: 28
+    readonly property int barHeight: 32
     readonly property int thinBorderWidth: 1
     readonly property int borderWidth: 2
     readonly property int accentBorderWidth: 3
     readonly property int cornerRadius: 5
-    readonly property int moduleSpacing: 8
-    readonly property int separatorHorizontalPadding: 6
+    readonly property int moduleSpacing: 9
+    readonly property int separatorHorizontalPadding: 7
 
     // Motion
     readonly property int fastAnimationDuration: 80
@@ -103,31 +103,36 @@ QtObject {
     readonly property int tooltipVerticalPadding: 9
     readonly property int tooltipCornerRadius: 4
     readonly property real tooltipLineHeight: 1.25
+    readonly property int tooltipDelay: 350
 
     // Top bar
     readonly property color topBarBottomBorder: palette4
-    readonly property int topBarContentRightMargin: 5
+    readonly property int topBarContentRightMargin: 7
 
     // Workspaces
-    readonly property int workspaceHorizontalPadding: 12
-    readonly property int workspaceVerticalPadding: 4
+    readonly property int workspaceHorizontalPadding: 13
+    readonly property int workspaceVerticalPadding: 5
 
     // Application indicators
-    readonly property int appIndicatorIconSize: 17
-    readonly property int appIndicatorSpacing: 8
+    readonly property int appIndicatorIconSize: 19
+    readonly property int appIndicatorSpacing: 9
     readonly property int appIndicatorMenuWidth: 230
     readonly property int appIndicatorMenuPadding: 5
     readonly property int appIndicatorMenuItemHeight: 32
     readonly property int appIndicatorMenuItemRadius: 3
     readonly property int appIndicatorMenuItemSpacing: 2
     readonly property int appIndicatorMenuItemHorizontalPadding: 10
+    readonly property int appIndicatorWindowPickerWidth: 360
+    readonly property int appIndicatorCountBadgeSize: 13
+    readonly property int appIndicatorCountBadgeFontSize: 8
+    readonly property int appIndicatorCountBadgeOffset: 4
 
     // Audio outputs
     readonly property color audioOutputActiveText: palette4
     readonly property color audioOutputText: palette3
-    readonly property int audioModuleSpacing: 6
-    readonly property int audioModuleIconWidth: 23
-    readonly property int audioModuleValueWidth: 42
+    readonly property int audioModuleSpacing: 7
+    readonly property int audioModuleIconWidth: 25
+    readonly property int audioModuleValueWidth: 45
 
     // Drawers
     readonly property int drawerLip: 18

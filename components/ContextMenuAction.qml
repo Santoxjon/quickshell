@@ -8,10 +8,11 @@ Rectangle {
     required property var theme
     required property string label
     property bool actionEnabled: true
+    property real availableWidth: root.theme.appIndicatorMenuWidth
 
     signal triggered
 
-    implicitWidth: root.theme.appIndicatorMenuWidth - 2 * root.theme.appIndicatorMenuPadding
+    implicitWidth: root.availableWidth - 2 * root.theme.appIndicatorMenuPadding
     implicitHeight: root.theme.appIndicatorMenuItemHeight
     radius: root.theme.appIndicatorMenuItemRadius
     color: actionMouseArea.containsMouse && root.actionEnabled ? root.theme.activeBg : "transparent"

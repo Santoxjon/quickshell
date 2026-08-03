@@ -33,6 +33,24 @@ Row {
             "extraActions": []
         },
         {
+            "id": "firefox",
+            "name": "Firefox",
+            "showWindowCount": true,
+            "individualWindowMovement": true,
+            "extraActions": [
+                {
+                    "id": "new-window",
+                    "text": "Open new window",
+                    "dispatcher": "hl.dsp.exec_cmd(\"firefox --new-window\")"
+                },
+                {
+                    "id": "new-private-window",
+                    "text": "Open new private window",
+                    "dispatcher": "hl.dsp.exec_cmd(\"firefox --private-window\")"
+                }
+            ]
+        },
+        {
             "id": "amule",
             "name": "aMule",
             "serviceUnit": "amuled.service",
@@ -138,6 +156,9 @@ Row {
             required property var modelData
 
             readonly property var applicationState: root.applicationState(applicationIcon.modelData.id)
+            readonly property int windowCount: applicationIcon.applicationState && Array.isArray(applicationIcon.applicationState.windows)
+                ? applicationIcon.applicationState.windows.length
+                : 0
 
             anchors.verticalCenter: parent.verticalCenter
             visible: applicationIcon.applicationState !== null
@@ -148,17 +169,53 @@ Row {
                 anchors.fill: parent
                 sourceSize: Qt.size(width, height)
                 fillMode: Image.PreserveAspectFit
-                source: Quickshell.shellDir + "/assets/" + applicationIcon.modelData.id + ".png"
+                source: applicationIcon.modelData.iconName
+                    ? Quickshell.iconPath(applicationIcon.modelData.iconName)
+                    : Quickshell.shellDir + "/assets/" + applicationIcon.modelData.id + ".png"
+            }
+
+            Rectangle {
+                id: windowCountBadge
+
+                visible: applicationIcon.modelData.showWindowCount === true && applicationIcon.windowCount > 1
+                z: 2
+
+                width: Math.max(root.theme.appIndicatorCountBadgeSize, countLabel.implicitWidth + 4)
+                height: root.theme.appIndicatorCountBadgeSize
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.rightMargin: -root.theme.appIndicatorCountBadgeOffset
+                anchors.bottomMargin: -root.theme.appIndicatorCountBadgeOffset
+                radius: height / 2
+                color: root.theme.palette1
+                border.width: root.theme.thinBorderWidth
+                border.color: root.theme.bg
+
+                ModuleText {
+                    id: countLabel
+
+                    anchors.centerIn: parent
+                    theme: root.theme
+                    text: applicationIcon.windowCount.toString()
+                    color: root.theme.palette7
+                    font.pixelSize: root.theme.appIndicatorCountBadgeFontSize
+                }
             }
 
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
+                hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
 
+                onEntered: indicatorTooltip.beginHover()
+                onExited: indicatorTooltip.endHover()
+
                 onClicked: function (mouse) {
-                    if (mouse.button === Qt.RightButton)
+                    if (mouse.button === Qt.RightButton) {
+                        indicatorTooltip.dismiss();
                         contextMenu.openMenu();
+                    }
                 }
 
                 onDoubleClicked: function (mouse) {
@@ -167,16 +224,26 @@ Row {
                 }
             }
 
+            AppIndicatorTooltip {
+                id: indicatorTooltip
+
+                theme: root.theme
+                anchorItem: applicationIcon
+                label: applicationIcon.modelData.name
+            }
+
             AppIndicatorContextMenu {
                 id: contextMenu
 
                 theme: root.theme
                 anchorItem: applicationIcon
                 application: applicationIcon.applicationState
+                applicationName: applicationIcon.modelData.name
                 hiddenWorkspaceId: root.hiddenWorkspaceId
                 extraActions: applicationIcon.modelData.extraActions ?? []
                 serviceUnit: applicationIcon.modelData.serviceUnit ?? ""
                 modeSwitchCommand: applicationIcon.modelData.modeSwitchCommand ?? []
+                individualWindowMovement: applicationIcon.modelData.individualWindowMovement === true
 
                 onModeSwitchStarted: targetMode => root.beginAmuleModeTransition(targetMode)
                 onModeSwitchFinished: (targetMode, succeeded) => root.finishAmuleModeTransition(targetMode, succeeded)

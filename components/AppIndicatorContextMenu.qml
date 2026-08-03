@@ -11,12 +11,15 @@ PopupWindow {
     required property var theme
     required property Item anchorItem
     required property var application
+    property string applicationName: "Application"
     required property int hiddenWorkspaceId
     property var extraActions: []
     property string serviceUnit: ""
     property var modeSwitchCommand: []
+    property bool individualWindowMovement: false
     property var pendingMoveWindows: []
     property int pendingWorkspaceId: -1
+    property string windowPickerAction: ""
 
     readonly property int moveAnimationDuration: 200
     readonly property real moveAnimationSpeed: root.moveAnimationDuration / 100
@@ -24,6 +27,8 @@ PopupWindow {
     readonly property bool serviceManaged: root.serviceUnit.length > 0 && root.modeSwitchCommand.length > 0
     readonly property bool serviceMode: root.serviceManaged && root.application && root.application.mode === "service"
     readonly property bool transitionMode: root.serviceManaged && root.application && root.application.mode === "transition"
+    readonly property bool windowPickerOpened: root.windowPickerAction.length > 0
+    readonly property var windowPickerModel: root.windowPickerCandidates()
 
     property string activeModeSwitchTarget: ""
 
@@ -36,7 +41,7 @@ PopupWindow {
     grabFocus: true
     color: "transparent"
 
-    implicitWidth: root.theme.appIndicatorMenuWidth
+    implicitWidth: root.windowPickerOpened ? root.theme.appIndicatorWindowPickerWidth : root.theme.appIndicatorMenuWidth
     implicitHeight: menuColumn.implicitHeight + 2 * root.theme.appIndicatorMenuPadding
 
     anchor.item: root.anchorItem
@@ -48,18 +53,25 @@ PopupWindow {
         if (!root.application)
             return;
 
+        root.windowPickerAction = "";
         root.visible = true;
     }
 
     function closeMenu(): void {
+        root.windowPickerAction = "";
         root.visible = false;
+    }
+
+    onVisibleChanged: {
+        if (!root.visible)
+            root.windowPickerAction = "";
     }
 
     function focusWorkspace(): void {
         if (!root.application || root.serviceMode || root.transitionMode || root.applicationIsHidden())
             return;
 
-        const workspaceId = Number(root.application.workspaceId);
+        const workspaceId = root.focusWorkspaceId();
 
         if (!Number.isInteger(workspaceId) || workspaceId <= 0) {
             console.warn(`Application indicator: invalid workspace for ${root.application.id}`);
@@ -78,13 +90,76 @@ PopupWindow {
         return root.application.windows.every(appWindow => Number(appWindow.workspaceId) === root.hiddenWorkspaceId);
     }
 
+    function windowIsHidden(appWindow): bool {
+        return appWindow && Number(appWindow.workspaceId) === root.hiddenWorkspaceId;
+    }
+
+    function nonHiddenWindows(): var {
+        if (!root.application || !Array.isArray(root.application.windows))
+            return [];
+
+        return root.application.windows.filter(appWindow => !root.windowIsHidden(appWindow));
+    }
+
+    function hiddenWindows(): var {
+        if (!root.application || !Array.isArray(root.application.windows))
+            return [];
+
+        return root.application.windows.filter(appWindow => root.windowIsHidden(appWindow));
+    }
+
+    function focusWorkspaceId(): int {
+        if (!root.application)
+            return -1;
+
+        if (root.individualWindowMovement) {
+            const visibleWindows = root.nonHiddenWindows();
+            return visibleWindows.length > 0 ? Number(visibleWindows[0].workspaceId) : -1;
+        }
+
+        return root.applicationIsHidden() ? -1 : Number(root.application.workspaceId);
+    }
+
+    function windowPickerCandidates(): var {
+        if (root.windowPickerAction === "send")
+            return root.nonHiddenWindows();
+
+        if (root.windowPickerAction === "bring")
+            return root.hiddenWindows();
+
+        return [];
+    }
+
+    function openWindowPicker(action: string): void {
+        root.windowPickerAction = action;
+        Qt.callLater(() => root.anchor.updateAnchor());
+    }
+
+    function closeWindowPicker(): void {
+        root.windowPickerAction = "";
+        Qt.callLater(() => root.anchor.updateAnchor());
+    }
+
+    function windowPickerLabel(appWindow, index: int): string {
+        const title = String(appWindow.title ?? "").trim();
+        const displayTitle = title.length > 0 ? title : `${root.applicationName} window ${index + 1}`;
+        return `${index + 1}. ${displayTitle}  ·  WS ${appWindow.workspaceId}`;
+    }
+
     function moveApplicationToWorkspace(workspaceId: int): void {
         if (!root.application || !Array.isArray(root.application.windows) || !Number.isInteger(workspaceId) || workspaceId <= 0)
             return;
 
+        root.moveWindowsToWorkspace(root.application.windows, workspaceId);
+    }
+
+    function moveWindowsToWorkspace(windows, workspaceId: int): void {
+        if (!Array.isArray(windows) || !Number.isInteger(workspaceId) || workspaceId <= 0)
+            return;
+
         const validWindows = [];
 
-        for (const appWindow of root.application.windows) {
+        for (const appWindow of windows) {
             const address = String(appWindow.address ?? "");
 
             if (!/^0x[0-9a-f]+$/i.test(address)) {
@@ -132,6 +207,11 @@ PopupWindow {
         if (root.serviceMode)
             return;
 
+        if (root.individualWindowMovement) {
+            root.openWindowPicker("send");
+            return;
+        }
+
         root.moveApplicationToWorkspace(root.hiddenWorkspaceId);
     }
 
@@ -141,7 +221,23 @@ PopupWindow {
             return;
         }
 
+        if (root.individualWindowMovement) {
+            root.openWindowPicker("bring");
+            return;
+        }
+
         root.moveApplicationToWorkspace(Hyprland.focusedWorkspace.id);
+    }
+
+    function movePickedWindow(appWindow): void {
+        if (!appWindow)
+            return;
+
+        const workspaceId = root.windowPickerAction === "send"
+            ? root.hiddenWorkspaceId
+            : (Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : -1);
+
+        root.moveWindowsToWorkspace([appWindow], workspaceId);
     }
 
     function closeApplication(): void {
@@ -296,7 +392,44 @@ PopupWindow {
             spacing: root.theme.appIndicatorMenuItemSpacing
 
             ContextMenuAction {
-                visible: root.serviceManaged
+                visible: root.windowPickerOpened
+                theme: root.theme
+                availableWidth: root.implicitWidth
+                label: "← Back"
+
+                onTriggered: root.closeWindowPicker()
+            }
+
+            ContextMenuAction {
+                visible: root.windowPickerOpened
+                theme: root.theme
+                availableWidth: root.implicitWidth
+                label: root.windowPickerAction === "send"
+                    ? "Select a window to hide"
+                    : "Select a window to bring here"
+                actionEnabled: false
+            }
+
+            Repeater {
+                model: root.windowPickerModel
+
+                delegate: ContextMenuAction {
+                    id: windowPickerItem
+
+                    required property var modelData
+                    required property int index
+
+                    theme: root.theme
+                    availableWidth: root.implicitWidth
+                    label: root.windowPickerLabel(windowPickerItem.modelData, windowPickerItem.index)
+                    actionEnabled: root.windowPickerAction === "send" || Hyprland.focusedWorkspace !== null
+
+                    onTriggered: root.movePickedWindow(windowPickerItem.modelData)
+                }
+            }
+
+            ContextMenuAction {
+                visible: !root.windowPickerOpened && root.serviceManaged
                 theme: root.theme
                 label: root.transitionMode
                     ? (root.application.targetMode === "service" ? "Switching to Service..." : "Switching to GUI...")
@@ -305,9 +438,10 @@ PopupWindow {
             }
 
             ContextMenuAction {
+                visible: !root.windowPickerOpened
                 theme: root.theme
                 label: "Focus workspace"
-                actionEnabled: root.application && Number(root.application.workspaceId) > 0 && !root.applicationIsHidden() && !root.transitionMode
+                actionEnabled: root.focusWorkspaceId() > 0 && !root.transitionMode
 
                 onTriggered: root.focusWorkspace()
             }
@@ -320,6 +454,7 @@ PopupWindow {
 
                     required property var modelData
 
+                    visible: !root.windowPickerOpened
                     theme: root.theme
                     label: String(extraActionItem.modelData.text ?? extraActionItem.modelData.id ?? "Action")
                     actionEnabled: extraActionItem.modelData.enabled !== false
@@ -329,7 +464,8 @@ PopupWindow {
             }
 
             ContextMenuAction {
-                visible: !root.applicationIsHidden()
+                visible: !root.windowPickerOpened
+                    && (root.individualWindowMovement ? root.nonHiddenWindows().length > 0 : !root.applicationIsHidden())
                 theme: root.theme
                 label: "Send to hidden workspace"
                 actionEnabled: !root.serviceMode && !root.transitionMode
@@ -338,7 +474,8 @@ PopupWindow {
             }
 
             ContextMenuAction {
-                visible: root.applicationIsHidden()
+                visible: !root.windowPickerOpened
+                    && (root.individualWindowMovement ? root.hiddenWindows().length > 0 : root.applicationIsHidden())
                 theme: root.theme
                 label: "Bring here"
                 actionEnabled: Hyprland.focusedWorkspace !== null
@@ -347,7 +484,7 @@ PopupWindow {
             }
 
             ContextMenuAction {
-                visible: root.serviceManaged
+                visible: !root.windowPickerOpened && root.serviceManaged
                 theme: root.theme
                 label: root.serviceMode ? "Switch to GUI mode" : "Switch to service mode"
                 actionEnabled: !root.transitionMode && !modeSwitchProcess.running && !serviceControlProcess.running
@@ -356,12 +493,14 @@ PopupWindow {
             }
 
             Rectangle {
-                width: root.theme.appIndicatorMenuWidth - 2 * root.theme.appIndicatorMenuPadding
+                visible: !root.windowPickerOpened
+                width: root.implicitWidth - 2 * root.theme.appIndicatorMenuPadding
                 height: root.theme.thinBorderWidth
                 color: root.theme.separator
             }
 
             ContextMenuAction {
+                visible: !root.windowPickerOpened
                 theme: root.theme
                 label: "Close application"
                 actionEnabled: !root.transitionMode

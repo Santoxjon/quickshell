@@ -43,6 +43,7 @@ emit_state() {
                 )
                 | {
                     address,
+                    title: (.title // ""),
                     workspaceId: (.workspace.id // -1),
                     focusHistoryId: (.focusHistoryID // 999999)
                 }
@@ -54,7 +55,7 @@ emit_state() {
                 {
                     id: $id,
                     workspaceId: .[0].workspaceId,
-                    windows: map({address, workspaceId})
+                    windows: map({address, title, workspaceId})
                 }
               end;
 
@@ -62,6 +63,7 @@ emit_state() {
             application("discord"; "discord|vesktop|legcord"),
             application("steam"; "steam"),
             application("telegram"; "org\\.telegram\\.desktop|telegramdesktop|telegram-desktop"),
+            application("firefox"; "firefox"),
             application("amule"; "org\\.amule\\.amule|amule")
         ]
     '); then
@@ -79,7 +81,7 @@ emit_state
 
 while IFS= read -r event; do
     case "$event" in
-        openwindow* | closewindow* | movewindow*)
+        openwindow* | closewindow* | movewindow* | windowtitle*)
             emit_state
             ;;
     esac
