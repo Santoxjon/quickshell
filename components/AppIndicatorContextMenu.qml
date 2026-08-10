@@ -5,6 +5,8 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 
+import "AppIndicatorMenuUtils.js" as MenuUtils
+
 PopupWindow {
     id: root
 
@@ -38,7 +40,19 @@ PopupWindow {
     readonly property bool transitionMode: root.serviceManaged && root.application && root.application.mode === "transition"
     readonly property bool windowPickerOpened: root.windowPickerAction.length > 0
     readonly property bool submenuOpened: root.windowPickerOpened || root.statusPageOpened
-    readonly property var windowPickerModel: root.windowPickerCandidates()
+    readonly property bool applicationHidden: MenuUtils.applicationIsHidden(root.application, root.hiddenWorkspaceId)
+    readonly property var nonHiddenWindowModel: MenuUtils.nonHiddenWindows(root.application, root.hiddenWorkspaceId)
+    readonly property var hiddenWindowModel: MenuUtils.hiddenWindows(root.application, root.hiddenWorkspaceId)
+    readonly property int applicationWorkspaceId: MenuUtils.focusWorkspaceId(
+        root.application,
+        root.individualWindowMovement,
+        root.hiddenWorkspaceId
+    )
+    readonly property var windowPickerModel: MenuUtils.windowPickerCandidates(
+        root.windowPickerAction,
+        root.application,
+        root.hiddenWorkspaceId
+    )
 
     property string activeModeSwitchTarget: ""
 
@@ -47,7 +61,7 @@ PopupWindow {
     signal serviceCloseStarted
     signal serviceCloseFinished(bool succeeded)
 
-    visible: root.anchorItem.visible
+    visible: root.anchorItem.visible && root.menuOpened
     grabFocus: false
     color: "transparent"
     mask: Region {
@@ -109,10 +123,10 @@ PopupWindow {
     }
 
     function focusWorkspace(): void {
-        if (!root.application || root.serviceMode || root.transitionMode || root.applicationIsHidden())
+        if (!root.application || root.serviceMode || root.transitionMode || root.applicationHidden)
             return;
 
-        const workspaceId = root.focusWorkspaceId();
+        const workspaceId = root.applicationWorkspaceId;
 
         if (!Number.isInteger(workspaceId) || workspaceId <= 0) {
             console.warn(`Application indicator: invalid workspace for ${root.application.id}`);
@@ -122,53 +136,6 @@ PopupWindow {
 
         Hyprland.dispatch(`hl.dsp.focus({ workspace = ${workspaceId} })`);
         root.closeMenu();
-    }
-
-    function applicationIsHidden(): bool {
-        if (!root.application || !Array.isArray(root.application.windows) || root.application.windows.length === 0)
-            return false;
-
-        return root.application.windows.every(appWindow => Number(appWindow.workspaceId) === root.hiddenWorkspaceId);
-    }
-
-    function windowIsHidden(appWindow): bool {
-        return appWindow && Number(appWindow.workspaceId) === root.hiddenWorkspaceId;
-    }
-
-    function nonHiddenWindows(): var {
-        if (!root.application || !Array.isArray(root.application.windows))
-            return [];
-
-        return root.application.windows.filter(appWindow => !root.windowIsHidden(appWindow));
-    }
-
-    function hiddenWindows(): var {
-        if (!root.application || !Array.isArray(root.application.windows))
-            return [];
-
-        return root.application.windows.filter(appWindow => root.windowIsHidden(appWindow));
-    }
-
-    function focusWorkspaceId(): int {
-        if (!root.application)
-            return -1;
-
-        if (root.individualWindowMovement) {
-            const visibleWindows = root.nonHiddenWindows();
-            return visibleWindows.length > 0 ? Number(visibleWindows[0].workspaceId) : -1;
-        }
-
-        return root.applicationIsHidden() ? -1 : Number(root.application.workspaceId);
-    }
-
-    function windowPickerCandidates(): var {
-        if (root.windowPickerAction === "send")
-            return root.nonHiddenWindows();
-
-        if (root.windowPickerAction === "bring")
-            return root.hiddenWindows();
-
-        return [];
     }
 
     function openWindowPicker(action: string): void {
@@ -197,64 +164,29 @@ PopupWindow {
     }
 
     function parseStatus(output: string): void {
-        const text = String(output ?? "");
-        const serverLine = text.match(/^\s*>\s*eD2k:\s*(.+)$/mi);
-        const kadLine = text.match(/^\s*>\s*Kad:\s*(.+)$/mi);
-        const downloadLine = text.match(/^\s*>\s*Download:\s*(.+)$/mi);
-        const uploadLine = text.match(/^\s*>\s*Upload:\s*(.+)$/mi);
-
-        root.statusServer = "Disconnected";
-        root.statusKad = "Disconnected";
-        root.statusDownload = downloadLine ? downloadLine[1].trim() : "--";
-        root.statusUpload = uploadLine ? uploadLine[1].trim() : "--";
-
-        if (serverLine) {
-            const serverValue = serverLine[1].trim();
-            const connectedServer = serverValue.match(/^Connected to\s+(.+?)(?:\s+\[[^\]]+\])?\s+with\s+(HighID|LowID)\s*$/i);
-
-            if (connectedServer) {
-                const idType = connectedServer[2].toLowerCase() === "highid" ? "HighID" : "LowID";
-                root.statusServer = `${connectedServer[1].trim()} · ${idType}`;
-            }
-        }
-
-        if (kadLine) {
-            const kadValue = kadLine[1].trim();
-
-            if (!/(?:disconnected|not connected)/i.test(kadValue) && /connected/i.test(kadValue))
-                root.statusKad = "Kad: OK";
-        }
-    }
-
-    function windowPickerLabel(appWindow, index: int): string {
-        const title = String(appWindow.title ?? "").trim();
-        const displayTitle = title.length > 0 ? title : `${root.applicationName} window ${index + 1}`;
-        return `${index + 1}. ${displayTitle}  ·  WS ${appWindow.workspaceId}`;
+        const status = MenuUtils.parseAmuleStatus(output);
+        root.statusServer = status.server;
+        root.statusKad = status.kad;
+        root.statusDownload = status.download;
+        root.statusUpload = status.upload;
     }
 
     function moveApplicationToWorkspace(workspaceId: int): void {
-        if (!root.application || !Array.isArray(root.application.windows) || !Number.isInteger(workspaceId) || workspaceId <= 0)
+        if (!root.application || !Number.isInteger(workspaceId) || workspaceId <= 0)
             return;
 
-        root.moveWindowsToWorkspace(root.application.windows, workspaceId);
+        root.moveWindowsToWorkspace(MenuUtils.applicationWindows(root.application), workspaceId);
     }
 
     function moveWindowsToWorkspace(windows, workspaceId: int): void {
         if (!Array.isArray(windows) || !Number.isInteger(workspaceId) || workspaceId <= 0)
             return;
 
-        const validWindows = [];
+        const validAddresses = MenuUtils.validWindowAddresses(windows);
+        const validWindows = validAddresses.map(address => ({"address": address}));
 
-        for (const appWindow of windows) {
-            const address = String(appWindow.address ?? "");
-
-            if (!/^0x[0-9a-f]+$/i.test(address)) {
-                console.warn(`Application indicator: invalid window address for ${root.application.id}`);
-                continue;
-            }
-
-            validWindows.push({"address": address});
-        }
+        if (validAddresses.length !== windows.length)
+            console.warn(`Application indicator: invalid window address for ${root.application.id}`);
 
         if (validWindows.length === 0)
             return;
@@ -263,16 +195,6 @@ PopupWindow {
         root.pendingWorkspaceId = workspaceId;
         root.closeMenu();
         animationSetupProcess.running = true;
-    }
-
-    function animationConfiguration(speed: real): string {
-        return [
-            `hl.animation({ leaf = "windowsIn", enabled = true, speed = ${speed}, bezier = "default" })`,
-            `hl.animation({ leaf = "windowsOut", enabled = true, speed = ${speed}, bezier = "default" })`,
-            `hl.animation({ leaf = "windowsMove", enabled = true, speed = ${speed}, bezier = "default" })`,
-            `hl.animation({ leaf = "fadeIn", enabled = true, speed = ${speed}, bezier = "default" })`,
-            `hl.animation({ leaf = "fadeOut", enabled = true, speed = ${speed}, bezier = "default" })`
-        ].join("; ");
     }
 
     function performPendingMove(): void {
@@ -335,19 +257,17 @@ PopupWindow {
             return;
         }
 
-        if (!root.application || !Array.isArray(root.application.windows))
+        if (!root.application)
             return;
 
-        for (const appWindow of root.application.windows) {
-            const address = String(appWindow.address ?? "");
+        const windows = MenuUtils.applicationWindows(root.application);
+        const validAddresses = MenuUtils.validWindowAddresses(windows);
 
-            if (!/^0x[0-9a-f]+$/i.test(address)) {
-                console.warn(`Application indicator: invalid window address for ${root.application.id}`);
-                continue;
-            }
+        if (validAddresses.length !== windows.length)
+            console.warn(`Application indicator: invalid window address for ${root.application.id}`);
 
+        for (const address of validAddresses)
             Hyprland.dispatch(`hl.dsp.window.close({ window = "address:${address}" })`);
-        }
 
         root.closeMenu();
     }
@@ -442,7 +362,7 @@ PopupWindow {
     Process {
         id: animationSetupProcess
 
-        command: ["hyprctl", "eval", root.animationConfiguration(root.moveAnimationSpeed)]
+        command: ["hyprctl", "eval", MenuUtils.animationConfiguration(root.moveAnimationSpeed)]
 
         stdout: StdioCollector {}
 
@@ -473,7 +393,7 @@ PopupWindow {
     Process {
         id: animationRestoreProcess
 
-        command: ["hyprctl", "eval", root.animationConfiguration(root.defaultAnimationSpeed)]
+        command: ["hyprctl", "eval", MenuUtils.animationConfiguration(root.defaultAnimationSpeed)]
 
         stdout: StdioCollector {}
 
@@ -488,7 +408,6 @@ PopupWindow {
     }
 
     Rectangle {
-        visible: root.menuOpened
         anchors.fill: parent
 
         radius: root.theme.cornerRadius
@@ -532,7 +451,11 @@ PopupWindow {
 
                     theme: root.theme
                     availableWidth: root.implicitWidth
-                    label: root.windowPickerLabel(windowPickerItem.modelData, windowPickerItem.index)
+                    label: MenuUtils.windowPickerLabel(
+                        windowPickerItem.modelData,
+                        windowPickerItem.index,
+                        root.applicationName
+                    )
                     actionEnabled: root.windowPickerAction === "send" || Hyprland.focusedWorkspace !== null
 
                     onTriggered: root.movePickedWindow(windowPickerItem.modelData)
@@ -604,7 +527,7 @@ PopupWindow {
                 visible: !root.submenuOpened
                 theme: root.theme
                 label: "Focus workspace"
-                actionEnabled: root.focusWorkspaceId() > 0 && !root.transitionMode
+                actionEnabled: root.applicationWorkspaceId > 0 && !root.transitionMode
 
                 onTriggered: root.focusWorkspace()
             }
@@ -628,7 +551,7 @@ PopupWindow {
 
             ContextMenuAction {
                 visible: !root.submenuOpened
-                    && (root.individualWindowMovement ? root.nonHiddenWindows().length > 0 : !root.applicationIsHidden())
+                    && (root.individualWindowMovement ? root.nonHiddenWindowModel.length > 0 : !root.applicationHidden)
                 theme: root.theme
                 label: "Send to hidden workspace"
                 actionEnabled: !root.serviceMode && !root.transitionMode
@@ -638,7 +561,7 @@ PopupWindow {
 
             ContextMenuAction {
                 visible: !root.submenuOpened
-                    && (root.individualWindowMovement ? root.hiddenWindows().length > 0 : root.applicationIsHidden())
+                    && (root.individualWindowMovement ? root.hiddenWindowModel.length > 0 : root.applicationHidden)
                 theme: root.theme
                 label: "Bring here"
                 actionEnabled: Hyprland.focusedWorkspace !== null

@@ -1,19 +1,14 @@
 import QtQuick
+import Quickshell
 
 import qs.components
 
 ModuleText {
-    id: root
+    text: Qt.formatDateTime(clock.date, "HH:mm")
 
-    property date currentTime: new Date()
+    SystemClock {
+        id: clock
 
-    text: Qt.formatDateTime(root.currentTime, "HH:mm")
-
-    Timer {
-        interval: 1000
-        running: true
-        repeat: true
-
-        onTriggered: root.currentTime = new Date()
+        precision: SystemClock.Minutes
     }
 }

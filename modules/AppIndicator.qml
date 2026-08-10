@@ -12,11 +12,9 @@ Row {
     required property var theme
     property var activeApplications: []
     property int hiddenWorkspaceId: 99
-    property int modeSwitchGracePeriod: 5000
-    property int modeSwitchMaximumHold: 15000
-    property string amulePendingMode: ""
-    property bool amuleClosePending: false
-    property var applications: [
+    readonly property string amuleApplicationId: "amule"
+    readonly property string amuleServiceUnit: "amuled.service"
+    readonly property var applicationDefinitions: [
         {
             "id": "discord",
             "name": "Discord",
@@ -56,105 +54,33 @@ Row {
             "extraActions": []
         },
         {
-            "id": "amule",
+            "id": root.amuleApplicationId,
             "name": "aMule",
-            "serviceUnit": "amuled.service",
+            "serviceUnit": root.amuleServiceUnit,
             "modeSwitchCommand": [Quickshell.shellDir + "/scripts/amule-mode.sh"],
             "statusCommand": ["amulecmd", "-c", "status"],
             "extraActions": []
         }
     ]
 
-    readonly property var amuleServiceState: amuleService.active ? {
-        "id": "amule",
-        "mode": "service",
-        "workspaceId": -1,
-        "windows": []
-    } : null
-    readonly property var amuleTransitionState: root.amulePendingMode.length > 0 ? {
-        "id": "amule",
-        "mode": "transition",
-        "targetMode": root.amulePendingMode,
-        "workspaceId": -1,
-        "windows": []
-    } : null
-
     anchors.verticalCenter: parent.verticalCenter
     height: root.theme.appIndicatorIconSize
     spacing: root.theme.appIndicatorSpacing
 
     function applicationState(applicationId: string): var {
-        if (applicationId === "amule" && root.amuleClosePending)
-            return null;
-
-        if (applicationId === "amule" && root.amuleTransitionState)
-            return root.amuleTransitionState;
+        if (applicationId === root.amuleApplicationId)
+            return amuleService.applicationState();
 
         for (const application of root.activeApplications) {
             if (application.id === applicationId)
                 return application;
         }
 
-        if (applicationId === "amule")
-            return root.amuleServiceState;
-
         return null;
     }
 
-    function amuleGuiIsActive(): bool {
-        for (const application of root.activeApplications) {
-            if (application.id === "amule")
-                return true;
-        }
-
-        return false;
-    }
-
-    function beginAmuleModeTransition(targetMode: string): void {
-        root.amulePendingMode = targetMode;
-        modeSwitchGraceTimer.interval = root.modeSwitchMaximumHold;
-        modeSwitchGraceTimer.restart();
-    }
-
-    function finishAmuleModeTransition(targetMode: string, succeeded: bool): void {
-        if (root.amulePendingMode !== targetMode)
-            return;
-
-        if (!succeeded) {
-            root.amulePendingMode = "";
-            modeSwitchGraceTimer.stop();
-            return;
-        }
-
-        root.updateAmuleModeTransition();
-
-        if (root.amulePendingMode.length > 0) {
-            modeSwitchGraceTimer.interval = root.modeSwitchGracePeriod;
-            modeSwitchGraceTimer.restart();
-        }
-    }
-
-    function updateAmuleModeTransition(): void {
-        if (root.amulePendingMode === "gui" && root.amuleGuiIsActive()) {
-            root.amulePendingMode = "";
-            modeSwitchGraceTimer.stop();
-        } else if (root.amulePendingMode === "service" && amuleService.active) {
-            root.amulePendingMode = "";
-            modeSwitchGraceTimer.stop();
-        }
-    }
-
-    function beginAmuleServiceClose(): void {
-        root.amuleClosePending = true;
-    }
-
-    function finishAmuleServiceClose(succeeded: bool): void {
-        if (!succeeded || !amuleService.active)
-            root.amuleClosePending = false;
-    }
-
     Repeater {
-        model: root.applications
+        model: root.applicationDefinitions
 
         delegate: Item {
             id: applicationIcon
@@ -225,8 +151,15 @@ Row {
                 }
 
                 onDoubleClicked: function (mouse) {
-                    if (mouse.button === Qt.LeftButton)
+                    if (mouse.button !== Qt.LeftButton)
+                        return;
+
+                    if (applicationIcon.modelData.id === root.amuleApplicationId
+                            && applicationIcon.applicationState?.mode === "service") {
+                        amuleService.showStatus();
+                    } else {
                         contextMenu.focusWorkspace();
+                    }
                 }
             }
 
@@ -252,12 +185,20 @@ Row {
                 statusCommand: applicationIcon.modelData.statusCommand ?? []
                 individualWindowMovement: applicationIcon.modelData.individualWindowMovement === true
 
-                onModeSwitchStarted: targetMode => root.beginAmuleModeTransition(targetMode)
-                onModeSwitchFinished: (targetMode, succeeded) => root.finishAmuleModeTransition(targetMode, succeeded)
-                onServiceCloseStarted: root.beginAmuleServiceClose()
-                onServiceCloseFinished: succeeded => root.finishAmuleServiceClose(succeeded)
+                onModeSwitchStarted: targetMode => amuleService.beginModeTransition(targetMode)
+                onModeSwitchFinished: (targetMode, succeeded) => amuleService.finishModeTransition(targetMode, succeeded)
+                onServiceCloseStarted: amuleService.beginServiceClose()
+                onServiceCloseFinished: succeeded => amuleService.finishServiceClose(succeeded)
             }
         }
+    }
+
+    AmuleService {
+        id: amuleService
+
+        activeApplications: root.activeApplications
+        applicationId: root.amuleApplicationId
+        serviceUnit: root.amuleServiceUnit
     }
 
     JsonLineProcess {
@@ -271,34 +212,8 @@ Row {
                 return;
             }
 
-            root.activeApplications = value.map(application => {
-                application.mode = "gui";
-                return application;
-            });
-
-            root.updateAmuleModeTransition();
+            root.activeApplications = value.map(application =>
+                Object.assign({}, application, { "mode": "gui" }));
         }
-    }
-
-    SystemdUnitStatus {
-        id: amuleService
-
-        unitName: "amuled.service"
-
-        onActiveChanged: {
-            if (!active)
-                root.amuleClosePending = false;
-
-            root.updateAmuleModeTransition();
-        }
-    }
-
-    Timer {
-        id: modeSwitchGraceTimer
-
-        interval: root.modeSwitchGracePeriod
-        repeat: false
-
-        onTriggered: root.amulePendingMode = ""
     }
 }

@@ -46,8 +46,9 @@ Item {
         command: [Quickshell.shellDir + "/scripts/get-memory-usage.sh"]
 
         onJsonReceived: memory => {
-            root.percentageUsage = typeof memory.percentUsage === "string" ? memory.percentUsage : "--%";
-            root.gigabyteUsage = typeof memory.gbUsage === "string" ? memory.gbUsage : "--GB / --GB";
+            const validMemory = memory && typeof memory === "object" ? memory : {};
+            root.percentageUsage = typeof validMemory.percentUsage === "string" ? validMemory.percentUsage : "--%";
+            root.gigabyteUsage = typeof validMemory.gbUsage === "string" ? validMemory.gbUsage : "--GB / --GB";
         }
     }
 }

@@ -10,7 +10,7 @@ PopupWindow {
     property bool hoverActive: false
     property bool tooltipShown: false
 
-    visible: root.anchorItem.visible
+    visible: root.anchorItem.visible && root.tooltipShown
     grabFocus: false
     color: "transparent"
     mask: Region {}
@@ -51,7 +51,6 @@ PopupWindow {
     }
 
     Rectangle {
-        visible: root.tooltipShown
         anchors.fill: parent
 
         radius: root.theme.tooltipCornerRadius

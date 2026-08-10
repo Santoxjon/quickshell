@@ -11,13 +11,14 @@ Rectangle {
     property bool actionEnabled: true
     property bool dimWhenDisabled: true
     property real availableWidth: root.theme.appIndicatorMenuWidth
+    readonly property bool highlighted: root.actionEnabled && actionMouseArea.containsMouse
 
     signal triggered
 
     implicitWidth: root.availableWidth - 2 * root.theme.appIndicatorMenuPadding
     implicitHeight: root.theme.appIndicatorMenuItemHeight
     radius: root.theme.appIndicatorMenuItemRadius
-    color: actionMouseArea.containsMouse && root.actionEnabled ? root.theme.activeBg : "transparent"
+    color: root.highlighted ? root.theme.activeBg : "transparent"
     opacity: root.actionEnabled || !root.dimWhenDisabled ? 1 : 0.45
 
     ModuleText {
@@ -30,7 +31,7 @@ Rectangle {
 
         theme: root.theme
         text: root.label
-        color: actionMouseArea.containsMouse && root.actionEnabled ? root.theme.activeFg : root.theme.fg
+        color: root.highlighted ? root.theme.activeFg : root.theme.fg
         font.pixelSize: root.theme.captionFontSize
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
@@ -46,7 +47,7 @@ Rectangle {
 
         theme: root.theme
         text: root.trailingText
-        color: actionMouseArea.containsMouse && root.actionEnabled ? root.theme.activeFg : root.theme.fg
+        color: root.highlighted ? root.theme.activeFg : root.theme.fg
         font.pixelSize: root.theme.captionFontSize
     }
 
