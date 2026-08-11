@@ -11,5 +11,5 @@ ScriptModel {
     readonly property string query: root.searchText.trim().replace(/\s+/g, " ").toLocaleLowerCase()
     readonly property bool hasQuery: root.query.length > 0
 
-    values: ApplicationSearch.filterApplications(root.applications, root.query)
+    values: ApplicationSearch.filterApplications([...root.applications], root.query)
 }

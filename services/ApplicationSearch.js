@@ -8,7 +8,9 @@ function createSearchData(application) {
     const displayName = application.name || application.id || "Unnamed application";
     const name = normalizeText(displayName);
     const genericName = normalizeText(application.genericName);
-    const keywords = Array.isArray(application.keywords) ? normalizeText(application.keywords.join(" ")) : "";
+    const keywords = application.keywords && typeof application.keywords.join === "function"
+        ? normalizeText(application.keywords.join(" "))
+        : "";
 
     return {
         application: application,
