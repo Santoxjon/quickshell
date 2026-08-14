@@ -129,7 +129,7 @@ Scope {
         notificationProcess.command = [
             "notify-send",
             "--app-name=aMule",
-            "--icon=" + Quickshell.shellDir + "/assets/amule.png",
+            "--icon=" + Quickshell.shellDir + "/assets/amule.notif.png",
             "aMule service mode",
             body
         ];
