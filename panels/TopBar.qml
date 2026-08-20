@@ -13,6 +13,12 @@ PanelWindow {
 
     readonly property Item cpuAnchorItem: rightModules.cpuAnchorItem
 
+    // Keep the window tied to the live output list. If DPMS removes every
+    // Wayland output, Qt creates a temporary FALLBACK screen; without an
+    // explicit binding the window can remain attached to that stale screen
+    // after the real output returns.
+    screen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+
     signal audioHovered
     signal audioUnhovered
     signal cpuHovered
