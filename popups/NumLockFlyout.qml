@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 import Quickshell.Io
 
 import qs.components
@@ -7,28 +6,18 @@ import qs.components
 LockStateFlyout {
     id: root
 
-    readonly property int stateReadDelay: 10
+    property bool stateInitialized: false
+    property var previousLedStates: ({})
 
     enabledIcon: "numLocked.png"
     disabledIcon: "numUnlocked.png"
 
-    function refreshState(): void {
-        readDelay.restart();
-    }
-
-    IpcHandler {
-        target: "numLock"
-
-        function refresh(): void {
-            root.refreshState();
-        }
-    }
+    Component.onCompleted: stateReader.running = true
 
     Timer {
-        id: readDelay
-
-        interval: root.stateReadDelay
-
+        interval: 250
+        repeat: true
+        running: true
         onTriggered: {
             if (!stateReader.running)
                 stateReader.running = true;
@@ -38,41 +27,49 @@ LockStateFlyout {
     Process {
         id: stateReader
 
-        command: ["hyprctl", "devices", "-j"]
+        command: ["sh", "-c", "for f in /sys/class/leds/input*::numlock/brightness; do " + "[ -r \"$f\" ] || continue; " + "printf '%s=' \"$f\"; " + "cat \"$f\"; " + "done"]
 
         stdout: StdioCollector {
             id: stateOutput
 
             onStreamFinished: {
-                let devices;
+                const currentStates = {};
+                const lines = stateOutput.text.trim().split("\n");
 
-                try {
-                    devices = JSON.parse(stateOutput.text);
-                } catch (error) {
-                    console.warn(`NumLockFlyout: invalid hyprctl output: ${error}`);
+                for (const line of lines) {
+                    const separator = line.lastIndexOf("=");
+                    if (separator === -1)
+                        continue;
+
+                    const value = Number.parseInt(line.substring(separator + 1), 10);
+                    if (Number.isFinite(value))
+                        currentStates[line.substring(0, separator)] = value > 0;
+                }
+
+                const paths = Object.keys(currentStates);
+                if (paths.length === 0)
+                    return;
+
+                const enabled = Object.values(currentStates).some(value => value);
+                if (!root.stateInitialized) {
+                    root.previousLedStates = currentStates;
+                    root.lockEnabled = enabled;
+                    root.stateInitialized = true;
                     return;
                 }
 
-                const keyboards = Array.isArray(devices.keyboards) ? devices.keyboards : [];
-                const mainKeyboard = keyboards.find(keyboard => keyboard.main);
+                let changed = false;
+                for (const path of paths) {
+                    if (root.previousLedStates[path] !== undefined && root.previousLedStates[path] !== currentStates[path]) {
+                        changed = true;
+                        break;
+                    }
+                }
 
-                if (!mainKeyboard)
-                    return;
-
-                root.showState(mainKeyboard.numLock === true);
-            }
-        }
-
-        stderr: StdioCollector {
-            id: stateError
-
-            onStreamFinished: {
-                const message = stateError.text.trim();
-
-                if (message)
-                    console.warn(`NumLockFlyout: ${message}`);
+                root.previousLedStates = currentStates;
+                if (changed)
+                    root.showState(enabled);
             }
         }
     }
-
 }

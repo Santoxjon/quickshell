@@ -147,6 +147,10 @@ QtObject {
     readonly property int audioDrawerContentSpacing: 10
     readonly property int audioOutputRowHeight: 26
 
+    // Network drawer
+    readonly property int networkDrawerContentSpacing: 9
+    readonly property int networkDrawerColumnSpacing: 14
+
     // CPU drawer
     readonly property color cpuDrawerGridSeparator: palette2
     readonly property color cpuDrawerCoreName: palette5

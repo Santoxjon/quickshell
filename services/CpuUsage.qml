@@ -25,14 +25,22 @@ Scope {
 
         const normalizedCores = [];
 
-        if (Array.isArray(cpu.cores)) {
-            for (const core of cpu.cores) {
-                const id = core && typeof core.id === "number" ? Math.round(core.id) : -1;
-                const usage = core ? root.normalizeUsage(core.usage) : -1;
+        const sourceCores = cpu.cores;
+        const sourceCoreCount = sourceCores && Number(sourceCores.length);
+        if (Number.isFinite(sourceCoreCount) && sourceCoreCount >= 0) {
+            for (let index = 0; index < sourceCoreCount; index++) {
+                const core = sourceCores[index];
+                // Process JSON values can arrive as string-backed variants in
+                // QML. Coerce both fields before validating so valid per-core
+                // samples are not silently discarded while totalUsage works.
+                const id = core && core.id !== null && core.id !== "" ? Number(core.id) : NaN;
+                const usageValue = core && core.usage !== null && core.usage !== "" ? Number(core.usage) : NaN;
+                const normalizedId = Number.isFinite(id) ? Math.round(id) : -1;
+                const usage = root.normalizeUsage(usageValue);
 
-                if (id >= 0 && usage >= 0)
+                if (normalizedId >= 0 && usage >= 0)
                     normalizedCores.push({
-                        "id": id,
+                        "id": normalizedId,
                         "usage": usage
                     });
             }

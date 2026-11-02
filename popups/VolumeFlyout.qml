@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Wayland
 import Quickshell.Services.Pipewire
 
 PanelWindow {
@@ -13,7 +14,9 @@ PanelWindow {
     readonly property int volume: root.audio ? Math.round(root.audio.volume * 100) : 0
     readonly property int volumeStep: 5
 
-    visible: root.opened || flyout.opacity > 0
+    // Keep the layer surface mapped: Hyprland may suppress a new layer
+    // created while a fullscreen client is already covering the output.
+    visible: true
 
     anchors {
         left: true
@@ -24,6 +27,8 @@ PanelWindow {
     implicitHeight: root.theme.volumeFlyoutPanelHeight
 
     color: "transparent"
+    // The top layer can be covered by fullscreen clients in Hyprland.
+    WlrLayershell.layer: WlrLayer.Overlay
     exclusionMode: ExclusionMode.Ignore
     focusable: false
 
@@ -57,6 +62,7 @@ PanelWindow {
         description: "Lower volume"
 
         onPressed: root.changeVolume(-root.volumeStep)
+        
     }
 
     Timer {

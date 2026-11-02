@@ -16,6 +16,8 @@ ShellRoot {
     property bool audioDrawerHovered: false
     property bool cpuModuleHovered: false
     property bool cpuDrawerHovered: false
+    property bool networkModuleHovered: false
+    property bool networkDrawerHovered: false
 
     function updateAudioDrawer(): void {
         audioDrawer.opened = root.audioModuleHovered || root.audioDrawerHovered;
@@ -23,6 +25,10 @@ ShellRoot {
 
     function updateCpuDrawer(): void {
         cpuDrawer.opened = root.cpuModuleHovered || root.cpuDrawerHovered;
+    }
+
+    function updateNetworkDrawer(): void {
+        networkDrawer.opened = root.networkModuleHovered || root.networkDrawerHovered;
     }
 
     Theme {
@@ -38,7 +44,7 @@ ShellRoot {
         theme: appTheme
         cpuUsage: cpuUsage
 
-        activeBorder: audioDrawer.fullyOpened || cpuDrawer.fullyOpened
+        activeBorder: audioDrawer.fullyOpened || cpuDrawer.fullyOpened || networkDrawer.fullyOpened
 
         onAudioHovered: {
             root.audioModuleHovered = true;
@@ -60,6 +66,17 @@ ShellRoot {
         onCpuUnhovered: {
             root.cpuModuleHovered = false;
             cpuDrawerCloseTimer.restart();
+        }
+
+        onNetworkHovered: {
+            root.networkModuleHovered = true;
+            networkDrawerCloseTimer.stop();
+            root.updateNetworkDrawer();
+        }
+
+        onNetworkUnhovered: {
+            root.networkModuleHovered = false;
+            networkDrawerCloseTimer.restart();
         }
 
         onShutdownRequested: powerMenu.openMenu()
@@ -114,6 +131,31 @@ ShellRoot {
         repeat: false
 
         onTriggered: root.updateCpuDrawer()
+    }
+
+    NetworkDrawer {
+        id: networkDrawer
+        theme: appTheme
+        anchorItem: topBar.networkAnchorItem
+        networkModule: topBar.networkModule
+
+        onEntered: {
+            root.networkDrawerHovered = true;
+            networkDrawerCloseTimer.stop();
+            root.updateNetworkDrawer();
+        }
+
+        onExited: {
+            root.networkDrawerHovered = false;
+            networkDrawerCloseTimer.restart();
+        }
+    }
+
+    Timer {
+        id: networkDrawerCloseTimer
+        interval: 1
+        repeat: false
+        onTriggered: root.updateNetworkDrawer()
     }
 
     NotificationServer {

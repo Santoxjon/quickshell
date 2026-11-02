@@ -9,11 +9,15 @@ Row {
     required property var cpuUsage
 
     readonly property Item cpuAnchorItem: cpuModule
+    readonly property Item networkAnchorItem: networkModule
+    readonly property alias networkModuleItem: networkModule
 
     signal audioHovered
     signal audioUnhovered
     signal cpuHovered
     signal cpuUnhovered
+    signal networkHovered
+    signal networkUnhovered
     signal shutdownRequested
 
     AppIndicator {
@@ -55,7 +59,12 @@ Row {
     }
 
     NetworkModule {
+        id: networkModule
+
         theme: root.theme
+
+        onHovered: root.networkHovered()
+        onUnhovered: root.networkUnhovered()
     }
 
     Separator {

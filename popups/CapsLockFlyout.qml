@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell.Hyprland
 import Quickshell.Io
 
 import qs.components
@@ -10,30 +9,16 @@ LockStateFlyout {
     property bool stateInitialized: false
     property var previousLedStates: ({})
 
-    readonly property int stateReadDelay: 40
-
     enabledIcon: "capsLocked.png"
     disabledIcon: "capsUnlocked.png"
     displayDuration: 500
 
     Component.onCompleted: stateReader.running = true
 
-    function refreshState(): void {
-        readDelay.restart();
-    }
-
-    GlobalShortcut {
-        name: "capsLock"
-        description: "Show caps lock state flyout"
-
-        onPressed: root.refreshState()
-    }
-
     Timer {
-        id: readDelay
-
-        interval: root.stateReadDelay
-
+        interval: 250
+        repeat: true
+        running: true
         onTriggered: {
             if (!stateReader.running)
                 stateReader.running = true;
@@ -54,53 +39,38 @@ LockStateFlyout {
 
                 for (const line of lines) {
                     const separator = line.lastIndexOf("=");
-
                     if (separator === -1)
                         continue;
 
-                    const path = line.substring(0, separator);
                     const value = Number.parseInt(line.substring(separator + 1), 10);
-
                     if (Number.isFinite(value))
-                        currentStates[path] = value > 0;
+                        currentStates[line.substring(0, separator)] = value > 0;
                 }
 
-                if (Object.keys(currentStates).length === 0) {
-                    console.warn("CapsLockFlyout: no readable Caps Lock LEDs found");
+                const paths = Object.keys(currentStates);
+                if (paths.length === 0)
                     return;
-                }
 
+                const enabled = Object.values(currentStates).some(value => value);
                 if (!root.stateInitialized) {
                     root.previousLedStates = currentStates;
-                    root.lockEnabled = Object.values(currentStates).some(enabled => enabled);
+                    root.lockEnabled = enabled;
                     root.stateInitialized = true;
                     return;
                 }
 
-                let changedState = null;
-
-                for (const path in currentStates) {
+                let changed = false;
+                for (const path of paths) {
                     if (root.previousLedStates[path] !== undefined && root.previousLedStates[path] !== currentStates[path]) {
-                        changedState = currentStates[path];
+                        changed = true;
                         break;
                     }
                 }
 
                 root.previousLedStates = currentStates;
-                root.showState(changedState ?? !root.lockEnabled);
-            }
-        }
-
-        stderr: StdioCollector {
-            id: stateError
-
-            onStreamFinished: {
-                const message = stateError.text.trim();
-
-                if (message)
-                    console.warn(`CapsLockFlyout: ${message}`);
+                if (changed)
+                    root.showState(enabled);
             }
         }
     }
-
 }

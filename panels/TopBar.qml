@@ -12,6 +12,8 @@ PanelWindow {
     property bool activeBorder: false
 
     readonly property Item cpuAnchorItem: rightModules.cpuAnchorItem
+    readonly property Item networkAnchorItem: rightModules.networkAnchorItem
+    readonly property var networkModule: rightModules.networkModuleItem
 
     // Keep the window tied to the live output list. If DPMS removes every
     // Wayland output, Qt creates a temporary FALLBACK screen; without an
@@ -23,6 +25,8 @@ PanelWindow {
     signal audioUnhovered
     signal cpuHovered
     signal cpuUnhovered
+    signal networkHovered
+    signal networkUnhovered
     signal shutdownRequested
 
     anchors {
@@ -84,6 +88,8 @@ PanelWindow {
                     onAudioUnhovered: root.audioUnhovered()
                     onCpuHovered: root.cpuHovered()
                     onCpuUnhovered: root.cpuUnhovered()
+                    onNetworkHovered: root.networkHovered()
+                    onNetworkUnhovered: root.networkUnhovered()
                     onShutdownRequested: root.shutdownRequested()
                 }
             }

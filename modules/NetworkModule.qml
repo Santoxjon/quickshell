@@ -10,6 +10,12 @@ Item {
     required property var theme
 
     property string ipAddress: "--"
+    property string cidr: ""
+    property string gateway: "--"
+    property string dns: "--"
+
+    signal hovered
+    signal unhovered
 
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
@@ -31,11 +37,29 @@ Item {
         }
     }
 
-    LineProcess {
-        logName: "Network address"
-        running: true
-        command: [Quickshell.shellDir + "/scripts/get-network-ip.sh"]
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.NoButton
 
-        onLineReceived: line => root.ipAddress = line.trim() || "--"
+        onEntered: root.hovered()
+        onExited: root.unhovered()
+    }
+
+    LineProcess {
+        logName: "Network information"
+        running: true
+        command: [Quickshell.shellDir + "/scripts/get-network-info.sh"]
+
+        onLineReceived: line => {
+            const fields = line.trim().split("|");
+            if (fields.length !== 4)
+                return;
+
+            root.ipAddress = fields[0] || "--";
+            root.cidr = fields[1] || "";
+            root.gateway = fields[2] || "--";
+            root.dns = fields[3] || "--";
+        }
     }
 }

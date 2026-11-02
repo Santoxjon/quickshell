@@ -44,7 +44,7 @@ PopupWindow {
             anchors.topMargin: root.theme.drawerContentPadding
             anchors.bottomMargin: root.theme.drawerContentPadding
             spacing: root.theme.audioDrawerContentSpacing
-            opacity: box.height / root.implicitHeight
+            opacity: box.progress
 
             ModuleText {
                 theme: root.theme

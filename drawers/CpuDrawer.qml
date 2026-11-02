@@ -49,7 +49,7 @@ PopupWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             width: root.gridWidth
             height: root.gridHeight
-            opacity: box.height / root.implicitHeight
+            opacity: box.progress
 
             Grid {
                 anchors.fill: parent
@@ -126,7 +126,7 @@ PopupWindow {
             theme: root.theme
             text: "CPU data unavailable"
             visible: root.coreCount === 0
-            opacity: box.height / root.implicitHeight
+            opacity: box.progress
         }
     }
 

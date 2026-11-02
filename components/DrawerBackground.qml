@@ -7,16 +7,18 @@ Item {
     property bool opened: false
 
     readonly property int lip: root.theme.drawerLip
-    readonly property bool fullyOpened: root.opened && root.height === root.implicitHeight
+    property real offsetScale: root.opened ? 0 : 1
+    readonly property real progress: 1 - root.offsetScale
+    readonly property bool fullyOpened: root.opened && root.progress > 0.999
 
     anchors.top: parent.top
     anchors.left: parent.left
     anchors.right: parent.right
 
-    height: root.opened ? root.implicitHeight : 0
+    height: root.implicitHeight * root.progress
     clip: true
 
-    Behavior on height {
+    Behavior on offsetScale {
         NumberAnimation {
             duration: root.theme.animationDuration
             easing.type: Easing.OutCubic
