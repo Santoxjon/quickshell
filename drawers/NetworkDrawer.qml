@@ -66,6 +66,7 @@ PopupWindow {
 
                 delegate: ModuleText {
                     required property var modelData
+                    required property int index
 
                     theme: root.theme
                     text: modelData.text
