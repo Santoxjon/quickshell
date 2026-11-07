@@ -207,12 +207,14 @@ Row {
         command: [Quickshell.shellDir + "/scripts/app-indicator.sh"]
 
         onJsonReceived: value => {
-            if (!Array.isArray(value)) {
+            const applications = JSON.parse(JSON.stringify(value));
+
+            if (!Array.isArray(applications)) {
                 root.activeApplications = [];
                 return;
             }
 
-            root.activeApplications = value.map(application =>
+            root.activeApplications = applications.map(application =>
                 Object.assign({}, application, { "mode": "gui" }));
         }
     }
